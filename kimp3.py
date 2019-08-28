@@ -36,6 +36,8 @@ def test_is_album(album):
         is_album = False
     else:
         album_title = album_title_set.pop()
+
+    logger.debug("Directory is album: " + str(is_album) + " Album title: " + album_title)
     return [is_album, album_title]
 
 
@@ -55,16 +57,16 @@ def test_is_compilation(album):
     for it_song in album.songList:
 
         # причём, если строка альбомного артиста содержится в песенном, то считаем альбомного
-        if it_song.tags[u'album_artist'] in it_song.tags[u'song_artist']:
-            if not it_song.tags[u'album_artist'] in song_artists.keys():
-                song_artists[it_song.tags[u'album_artist']] = 1
+        if it_song.tags.old[u'album_artist'] in it_song.tags.old[u'song_artist']:
+            if not it_song.tags.old[u'album_artist'] in song_artists.keys():
+                song_artists[it_song.tags.old[u'album_artist']] = 1
             else:
-                song_artists[it_song.tags[u'album_artist']] += 1
+                song_artists[it_song.tags.old[u'album_artist']] += 1
         else:
-            if not it_song.tags[u'song_artist'] in song_artists.keys():
-                song_artists[it_song.tags[u'song_artist']] = 1
+            if not it_song.tags.old[u'song_artist'] in song_artists.keys():
+                song_artists[it_song.tags.old[u'song_artist']] = 1
             else:
-                song_artists[it_song.tags[u'song_artist']] += 1
+                song_artists[it_song.tags.old[u'song_artist']] += 1
 
     # Если один артист исполняет меньше определённой доли песен от всех песен в каталоге,
     # (а насколько именно — задаётся в конфиг.файле), то каталог признаётся сборником
@@ -78,6 +80,7 @@ def test_is_compilation(album):
             album_artist = artist_name
             break
 
+    logger.debug("Album is compilation: " + str(is_compilation) + ", Album artist: " + album_artist)
     return is_compilation, album_artist
 
 
@@ -96,6 +99,7 @@ class SongDir:
         # Первый проход: просто читаем теги, декодируем (если нужно).
         for name in os.listdir(scanpath):
             if os.path.isfile(os.path.join(scanpath, name)) is True and name[-4:] == '.mp3':
+                logger.debug("Appending " + os.path.join(scanpath, name))
                 self.songList.append(song.Song(os.path.join(scanpath, name), self))
 
         self.is_album, self.album_title = test_is_album(self)
@@ -109,12 +113,15 @@ class SongDir:
 
         # Второй проход: дополняем и исправляем теги на основе данных по всему альбому
         if config_vars[u'check_tags']:
+            logger.debug("Checking tags...")
             for it_song in self.songList:
                 it_song.check_tags()
 
         if config_vars[u'move_or_copy'] == u'move':
+            logger.debug("Moving files...")
             self.move_all_songs()
         if config_vars[u'move_or_copy'] == u'copy':
+            logger.debug("Copying files...")
             self.copy_all_songs()
 
     def count_num_of_tracks(self):
@@ -123,12 +130,13 @@ class SongDir:
         # Иначе — количество треков.
         max_track_num = 0
         for i in self.songList:
-            if i.tags[u'track_num_N'] == u'': continue
-            if int(i.tags[u'track_num_N']) > max_track_num:
-                max_track_num = int(i.tags[u'track_num_N'])
+            if i.tags.new[u'track_num_N'] == u'' or None: continue
+            if int(i.tags.new[u'track_num_N']) > max_track_num:
+                max_track_num = int(i.tags.new[u'track_num_N'])
         if max_track_num < len(self.songList):
             max_track_num = len(self.songList)
         self.num_of_tracks = max_track_num
+        logger.debug("Number of tracks set to " + str(self.num_of_tracks))
 
         # Остался непонятный кусок со странной логикой. Подтереть
         # if max_track_num == len(self.songList):
@@ -141,7 +149,7 @@ class SongDir:
         tag_list = []
         tag_set = set()
         for it_song in self.songList:
-            current_tag = it_song.tags[tag]
+            current_tag = it_song.tags.new[tag]
             tag_list.append(current_tag)
             tag_set.add(current_tag)
         if list_needed:
@@ -184,6 +192,7 @@ class ScanDir:
 
     def dirscan(self, scanpath):
         num_of_mp3 = 0
+        logger.debug("Scanning " + scanpath)
         for item in os.listdir(scanpath):
             full_item = scanpath + '/' + item
             if os.path.isdir(full_item):
@@ -206,8 +215,8 @@ class ScanDir:
 
 if __name__ == '__main__':
 
-    # config_vars[u'scan_dir_list'] = ['/media/kimifish/MediaStore/Музыка/Hills']
-    config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/Aerosmith']
+    config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/--Music/Kabanjak']
+    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/Deep Purple']
 
     for folder in config_vars[u'scan_dir_list']:
         if os.path.isdir(folder):

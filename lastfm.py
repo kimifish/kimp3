@@ -13,7 +13,7 @@ import pylast
 # about anything and see examples of how it works
 import conf_parse
 
-logger = logging.getLogger('kimp3')
+logger = logging.getLogger(__name__)
 config_vars = conf_parse.get_config()
 
 # Логинимся в Last.FM:
@@ -36,25 +36,25 @@ def get_artist(tags):
 
 def get_album(tags):
     album = network.get_album(tags[u'album_artist'], tags[u'album_title'])
-    return album
+    return [album, get_tags(album, 3)]
 
 
-def get_tags(obj, num=10):
+def get_tags(obj, num=20):
     try:
         lastfm_raw_tags = obj.get_top_tags()
     except pylast.WSError:
         logger.warning('Last.FM: Track not found')
         return set()
 
-    lastfm_tags = set()
+    lastfm_tags = []
     for i in lastfm_raw_tags:
         tag = i.item.get_name().lower()
         for current_tag_list in config_vars[u'lastfm_similar_tags']:
             if tag in current_tag_list:
                 tag = current_tag_list[0]
         if tag not in config_vars[u'lastfm_banned_tags']:
-            lastfm_tags.add(tag)
-    return lastfm_tags
+            lastfm_tags.append(tag)
+    return lastfm_tags[0:num]
 
 
 def track_correction(track, tags):
@@ -78,4 +78,11 @@ def album_correction(album, tags):
     if album_title != tags[u'album_title']:
         tags[u'album_title'] = album_title
         logger.info(u'Album title corrected to ' + tags[u'album_title'] + u' by Last.FM')
+    return tags
+
+
+def genre_correction(genre, tags):
+    if genre != tags[u'genre']:
+        tags[u'genre'] = genre
+        logger.info(u'Genre corrected to ' + tags[u'genre'] + u' by Last.FM')
     return tags

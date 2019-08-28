@@ -7,12 +7,13 @@ from shutil import move, rmtree
 
 import errno
 import logging
-import eyed3
 
 import conf_parse
 import song
+import tags
+import interface.utils
 
-logger = logging.getLogger('kimp3')
+logger = logging.getLogger(__name__)
 
 dirs_to_create = []
 files_to_copy = []
@@ -50,8 +51,14 @@ def move_copy_operation(file_list, operation):
         log_text = u'Dunno wat to do'
 
     for song_file in file_list:
+        if conf_parse.config_vars['interactive']:
+            song_file.print_changes()
+            if not interface.utils.yes_or_no("Proceed? (y/n)"):
+                continue
+
         if song_file.filepath == song_file.new_filepath:
             logger.info("File " + song_file.new_name + " already in place. Skipping...")
+            song_file.tags.write_tags()
             continue
 
         if os.path.isdir(song_file.new_filepath):
@@ -63,8 +70,10 @@ def move_copy_operation(file_list, operation):
             if not conf_parse.config_vars[u'dry run']:
                 operation(song_file.filepath, song_file.new_filepath)
                 if isinstance(song_file, song.Song):
-                    song_file.mp3 = eyed3.load(song_file.new_filepath)
-                    song_file.write_tags()
+                    # song_file.mp3 = eyed3.load(song_file.new_filepath)
+                    tags_copy = song_file.tags.new.copy()
+                    song_file.tags = tags.SongTags(song_file.new_filepath, tags=tags_copy)
+                    song_file.tags.write_tags()
 
 
 def execute():
