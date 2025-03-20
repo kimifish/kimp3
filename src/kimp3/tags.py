@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #  -*- coding: utf-8 -*-
 
 # import taglib
@@ -7,9 +6,7 @@ import logging
 from config import cfg
 # import eyed3
 
-# cfg = conf_parse.get_config()
-
-log = logging.getLogger(__name__)
+log = logging.getLogger(f"{cfg.APP_NAME}.{__name__}")
 
 
 class SongTags:

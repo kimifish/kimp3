@@ -19,107 +19,165 @@ log.info('•' + str(datetime.today()) + ' Starting…')
 
 
 class SongDir:
-    def __init__(self, scanpath):
-        self.songList = []
-
+    """Represents a directory containing audio files and manages their organization.
+    
+    Attributes:
+        songs (list): List of Song objects in the directory
+        is_album (bool): Whether directory represents an album
+        is_compilation (bool): Whether directory is a compilation
+        path (str): Directory path
+        new_path (str): New path after organization
+        album_title (str): Album title if is_album
+        album_artist (str): Album artist if is_album
+        track_count (int): Total number of tracks
+        common_files (list): Common album-related files (artwork, etc)
+    """
+    
+    def __init__(self, scan_path: str):
+        """Initialize SongDir with path and scan for audio files.
+        
+        Args:
+            scan_path (str): Directory path to scan
+        """
+        self.songs = []
+        self.path = scan_path
+        self.new_path = None
+        
+        # Album-related attributes
         self.is_album = False
         self.is_compilation = False
-        self.path = None
-        self.newpath = None
         self.album_title = None
         self.album_artist = None
-        self.num_of_tracks = None
-        self.common_album_files = list()
+        self.track_count = None
+        self.common_files = []
 
-        # Первый проход: просто читаем теги, декодируем (если нужно).
-        for name in os.listdir(scanpath):
-            if os.path.isfile(os.path.join(scanpath, name)) is True and \
-                    os.path.splitext(name)[1] in cfg.valid_extensions:
-                log.debug("Appending " + os.path.join(scanpath, name))
-                self.songList.append(song.Song(os.path.join(scanpath, name), self))
-            elif name in cfg.common_files:
-                log.debug(f"Appending {os.path.join(scanpath, name)} to common files.")
-                self.common_album_files.append(name)
+        self._scan_directory()
+        self._analyze_directory()
+        self._process_files()
+
+    def _scan_directory(self):
+        """Scan directory for audio files and common album files."""
+        try:
+            for entry in os.scandir(self.path):
+                if not entry.is_file():
+                    continue
+                    
+                name = entry.name
+                if os.path.splitext(name)[1] in cfg.scan.valid_extensions:
+                    log.debug(f"Found audio file: {entry.path}")
+                    self.songs.append(song.Song(entry.path, self))
+                elif name in cfg.scan.common_files:
+                    log.debug(f"Found common file: {entry.path}")
+                    self.common_files.append(name)
+                    
+        except OSError as e:
+            log.error(f"Error scanning directory {self.path}: {e}")
+
+    def _analyze_directory(self):
+        """Analyze directory contents to determine if it's an album/compilation."""
+        if not self.songs:
+            return
 
         self.is_album, self.album_title = test_is_album(self)
-
+        
+        if self.is_album and cfg.collection.compilation_test:
+            self.is_compilation, self.album_artist = test_is_compilation(self)
+            
         if self.is_album:
-            if cfg.compilation_test:
-                self.is_compilation, self.album_artist = test_is_compilation(self)
+            self._count_tracks()
 
-            self.path = self.songList[0].path
-            self.count_num_of_tracks()
+    def _count_tracks(self):
+        """Count total tracks in album based on track numbers and file count."""
+        max_track_num = 0
+        for song in self.songs:
+            try:
+                track_num = int(song.tags.new['track_num'])
+                max_track_num = max(max_track_num, track_num)
+            except (ValueError, TypeError):
+                continue
+                
+        self.track_count = max(max_track_num, len(self.songs))
+        log.debug(f"Track count set to {self.track_count}")
 
-        # Второй проход: дополняем и исправляем теги на основе данных по всему альбому
-
-        if cfg.move_or_copy == 'move':
+    def _process_files(self):
+        """Process files according to configuration."""
+        if not self.songs:
+            return
+            
+        if cfg.scan.move_or_copy == 'move':
             log.debug("Moving files...")
-            self.move_all_songs()
-        if cfg.move_or_copy == 'copy':
+            self._move_files()
+        elif cfg.scan.move_or_copy == 'copy':
             log.debug("Copying files...")
-            self.copy_all_songs()
+            self._copy_files()
+
+    def _copy_files(self):
+        """Copy all songs and common files to new location."""
+        for song_file in self.songs:
+            song_file.copy_to()
+        self._copy_common_files(file_operations.files_to_copy)
+
+    def _move_files(self):
+        """Move all songs and common files to new location."""
+        for song_file in self.songs:
+            song_file.move_to()
+        self._copy_common_files(file_operations.files_to_move)
+
+    def _copy_common_files(self, operation_list):
+        """Copy common album files to new location.
+        
+        Args:
+            operation_list (list): List to append file operations to
+        """
+        if not self.common_files or not self.songs:
+            return
+            
+        # Get target directory from first song's new path
+        target_dir = os.path.dirname(self.songs[0].new_filepath)
+        
+        for common_file in self.common_files:
+            usual_file = song.UsualFile(os.path.join(self.path, common_file))
+            usual_file.new_path = target_dir
+            usual_file.new_name = common_file
+            usual_file.new_filepath = os.path.join(target_dir, common_file)
+            operation_list.append(usual_file)
 
     def check_tags(self):
+        """Check and correct tags for all songs in directory."""
         log.debug("Checking tags...")
-        for it_song in self.songList:
-            it_song.check_tags()
+        for song_file in self.songs:
+            song_file.check_tags()
 
-    def count_num_of_tracks(self):
-        # Метод пытается понять, сколько всего должно быть треков в альбоме.
-        # Если встречается трек с номером, большим, чем число треков, то возвращает его,
-        # Иначе — количество треков.
-        max_track_num = 0
-        for i in self.songList:
-            if i.tags.new['tracknumber'] == '' or None: continue
-            if int(i.tags.new['tracknumber']) > max_track_num:
-                max_track_num = int(i.tags.new['tracknumber'])
-        if max_track_num < len(self.songList):
-            max_track_num = len(self.songList)
-        self.num_of_tracks = max_track_num
-        log.debug("Number of tracks set to " + str(self.num_of_tracks))
+    def gather_tag(self, tag: str, as_list: bool = False):
+        """Gather specific tag values from all songs.
+        
+        Args:
+            tag (str): Tag name to gather
+            as_list (bool): Return as list instead of set
+            
+        Returns:
+            set or list: Collected tag values
+        """
+        values = [song.tags.new[tag] for song in self.songs]
+        return values if as_list else set(values)
 
-    def gather_tag(self, tag, list_needed=False):
-        # собирает тэг со всех треков папки в массив и сет
-        tag_list = []
-        tag_set = set()
-        for it_song in self.songList:
-            current_tag = it_song.tags.new[tag]
-            tag_list.append(current_tag)
-            tag_set.add(current_tag)
-        if list_needed:
-            return tag_list
-        else:
-            return tag_set
-
-    def copy_all_songs(self):  # вызывает метод копирования файла
-        for i in self.songList:
-            i.copy_to()
-        self.copy_common_album_files(file_operations.files_to_copy)
-
-    def move_all_songs(self):  # вызывает метод перемещения файла
-        for i in self.songList:
-            i.move_to()
-        self.copy_common_album_files(file_operations.files_to_move)
-
-    def copy_common_album_files(self, operation_list):
-        # Целевую папку дёргаем у первой песни
-        # self.newpath = os.path.split(self.songList[0].new_filepath)[0] if self.is_album else None
-
-        # Проходимся по каталогу включая подкаталоги, находим нужные файлы и добавляем их в
-        # список, который передан в аргументах.
-        # for current_dir, subdirs, files in os.walk(self.path):
-        #     for filename in files:
-        #         for common_file in cfg.common_files:
-        #             if filename.lower() == common_file.lower():
-        #                 usual_file = song.UsualFile(os.path.join(current_dir, filename))
-        #                 usual_file.new_path, usual_file.new_name = self.newpath, filename
-        #                 usual_file.new_filepath = os.path.join(self.newpath, filename)
-        #                 operation_list.append(usual_file)
-        for common_file in self.common_album_files:
-            usual_file = song.UsualFile(os.path.join(self.path, common_file))
-            usual_file.new_path, usual_file.new_name = self.newpath, common_file
-            usual_file.new_filepath = os.path.join(self.newpath, common_file)
-            operation_list.append(usual_file)
+    @property
+    def stats(self):
+        """Get directory statistics.
+        
+        Returns:
+            dict: Statistics about the directory
+        """
+        return {
+            'path': self.path,
+            'song_count': len(self.songs),
+            'is_album': self.is_album,
+            'is_compilation': self.is_compilation,
+            'album_title': self.album_title,
+            'album_artist': self.album_artist,
+            'track_count': self.track_count,
+            'common_files': len(self.common_files)
+        }
 
 
 class ScanDir:
@@ -128,18 +186,38 @@ class ScanDir:
         self.scan_directory(scanpath)
 
     def scan_directory(self, scanpath):
-        num_of_audio = 0
+        """Recursively scan directory for audio files and add them to directories_list.
+        
+        Args:
+            scanpath (str): Path to scan for audio files
+        """
         log.debug(f"Scanning {scanpath}…")
-        for item in os.listdir(scanpath):
-            full_item = os.path.join(scanpath, item)
-            if os.path.isdir(full_item):
-                if item not in cfg.skip_dirs:
-                    self.scan_directory(full_item)
-            if os.path.isfile(full_item) and os.path.splitext(item)[1] in cfg.valid_extensions:
-                num_of_audio += 1
-        if num_of_audio > 0:
-            self.directories_list.append(SongDir(scanpath))
-            log.info(scanpath + " added to directory list.")
+        
+        try:
+            # Get all items in directory at once
+            items = list(os.scandir(scanpath))
+            
+            # Split into dirs and files
+            dirs = [item for item in items 
+                   if item.is_dir() and item.name not in cfg.skip_dirs]
+            
+            audio_files = [item for item in items 
+                          if item.is_file() and 
+                          os.path.splitext(item.name)[1] in cfg.valid_extensions]
+            
+            # If audio files found, create SongDir
+            if audio_files:
+                self.directories_list.append(SongDir(scanpath))
+                log.info(f"Added {scanpath} to directory list ({len(audio_files)} audio files)")
+                
+            # Recursively scan subdirectories
+            for dir_entry in dirs:
+                self.scan_directory(dir_entry.path)
+                
+        except PermissionError:
+            log.warning(f"Permission denied accessing {scanpath}")
+        except OSError as e:
+            log.error(f"Error scanning {scanpath}: {e}")
 
     def check_tags(self):
         for directory in self.directories_list:
@@ -152,6 +230,25 @@ class ScanDir:
     def move_all_dirs(self):
         for i in self.directories_list:
             i.move_all_songs()
+
+    @property
+    def stats(self):
+        """Return scanning statistics.
+        
+        Returns:
+            dict: Statistics about scanned directories and files
+        """
+        total_dirs = len(self.directories_list)
+        total_files = sum(len(d.songList) for d in self.directories_list)
+        albums = sum(1 for d in self.directories_list if d.is_album)
+        compilations = sum(1 for d in self.directories_list if d.is_compilation)
+        
+        return {
+            'total_directories': total_dirs,
+            'total_files': total_files,
+            'albums': albums,
+            'compilations': compilations
+        }
 
 
 def main():
