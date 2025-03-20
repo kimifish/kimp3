@@ -1,80 +1,21 @@
+#  -*- coding: utf-8 -*-
 #!/usr/bin/python3
 #  -*- coding: utf-8 -*-
+# pyright: basic
+# pyright: reportAttributeAccessIssue=false
 
-import os
 import logging
+import os
+import sys
 from datetime import datetime
-from config import cfg
-import song
+
 import file_operations
+import song
+from config import cfg, APP_NAME
+from checks import test_is_album, test_is_compilation
 
-log = logging.getLogger('kimp3')
+log = logging.getLogger(f"{APP_NAME}.{__name__}")
 log.info('•' + str(datetime.today()) + ' Starting…')
-
-
-def get_config():
-    return cfg
-
-
-def test_is_album(album):
-    # Метод проверяет, является ли каталог альбомом или нет. Возвращает буль.
-    # Проверка простая: у всех песен тэг альбома должен быть одинаковым.
-
-    album_title_set = album.gather_tag('album_title')
-
-    is_album = True
-    album_title = ""
-
-    if len(album_title_set) > 1:
-        is_album = False
-    else:
-        album_title = album_title_set.pop()
-
-    log.debug("Directory is album: " + str(is_album) + ", Album title: " + album_title)
-    return [is_album, album_title]
-
-
-def test_is_compilation(album):
-    # Метод проверяет, является ли каталог сборником или нет. Возвращает буль.
-    # # Сначала просто проверяем, есть ли у всех треков тэг сборника.
-    # album_type_set = album.gather_tag(u'album_type')
-    #
-    # if album_type_set == {u'compilation'}:
-    #     is_compilation = True
-    #     album_artist = ""
-    #     logger.info(u"Album type was compilation already")
-
-    # если тэга сборника нет, а конфиг говорит, что надо бы проверить по артистам, то проверяем по ним:
-    song_artists = {}
-
-    for it_song in album.songList:
-
-        # причём, если строка альбомного артиста содержится в песенном, то считаем альбомного
-        if it_song.tags.old['album_artist'] in it_song.tags.old['song_artist']:
-            if not it_song.tags.old['album_artist'] in song_artists.keys():
-                song_artists[it_song.tags.old['album_artist']] = 1
-            else:
-                song_artists[it_song.tags.old['album_artist']] += 1
-        else:
-            if not it_song.tags.old['song_artist'] in song_artists.keys():
-                song_artists[it_song.tags.old['song_artist']] = 1
-            else:
-                song_artists[it_song.tags.old['song_artist']] += 1
-
-    # Если один артист исполняет меньше определённой доли песен от всех песен в каталоге,
-    # (а насколько именно — задаётся в конфиг.файле), то каталог признаётся сборником
-    # ОДНАКО, метод ничто никуда не пишет, только возвращает булевое значение.
-    is_compilation = True
-    album_artist = "Various artists"
-
-    for artist_name in song_artists.keys():
-        if song_artists[artist_name] / len(album.songList) > float(cfg.compilation_coef):
-            is_compilation = False
-            album_artist = artist_name
-            break
-
-    log.debug("Album is compilation: " + str(is_compilation) + ", Album artist: " + album_artist)
-    return is_compilation, album_artist
 
 
 class SongDir:
@@ -88,6 +29,7 @@ class SongDir:
         self.album_title = None
         self.album_artist = None
         self.num_of_tracks = None
+        self.common_album_files = list()
 
         # Первый проход: просто читаем теги, декодируем (если нужно).
         for name in os.listdir(scanpath):
@@ -95,6 +37,9 @@ class SongDir:
                     os.path.splitext(name)[1] in cfg.valid_extensions:
                 log.debug("Appending " + os.path.join(scanpath, name))
                 self.songList.append(song.Song(os.path.join(scanpath, name), self))
+            elif name in cfg.common_files:
+                log.debug(f"Appending {os.path.join(scanpath, name)} to common files.")
+                self.common_album_files.append(name)
 
         self.is_album, self.album_title = test_is_album(self)
 
@@ -133,7 +78,6 @@ class SongDir:
         self.num_of_tracks = max_track_num
         log.debug("Number of tracks set to " + str(self.num_of_tracks))
 
-
     def gather_tag(self, tag, list_needed=False):
         # собирает тэг со всех треков папки в массив и сет
         tag_list = []
@@ -159,18 +103,23 @@ class SongDir:
 
     def copy_common_album_files(self, operation_list):
         # Целевую папку дёргаем у первой песни
-        self.newpath = os.path.split(self.songList[0].new_filepath)[0] if self.is_album else None
+        # self.newpath = os.path.split(self.songList[0].new_filepath)[0] if self.is_album else None
 
         # Проходимся по каталогу включая подкаталоги, находим нужные файлы и добавляем их в
         # список, который передан в аргументах.
-        for current_dir, subdirs, files in os.walk(self.path):
-            for filename in files:
-                for common_file in cfg.common_files:
-                    if filename.lower() == common_file.lower():
-                        usual_file = song.UsualFile(os.path.join(current_dir, filename))
-                        usual_file.new_path, usual_file.new_name = self.newpath, filename
-                        usual_file.new_filepath = os.path.join(self.newpath, filename)
-                        operation_list.append(usual_file)
+        # for current_dir, subdirs, files in os.walk(self.path):
+        #     for filename in files:
+        #         for common_file in cfg.common_files:
+        #             if filename.lower() == common_file.lower():
+        #                 usual_file = song.UsualFile(os.path.join(current_dir, filename))
+        #                 usual_file.new_path, usual_file.new_name = self.newpath, filename
+        #                 usual_file.new_filepath = os.path.join(self.newpath, filename)
+        #                 operation_list.append(usual_file)
+        for common_file in self.common_album_files:
+            usual_file = song.UsualFile(os.path.join(self.path, common_file))
+            usual_file.new_path, usual_file.new_name = self.newpath, common_file
+            usual_file.new_filepath = os.path.join(self.newpath, common_file)
+            operation_list.append(usual_file)
 
 
 class ScanDir:
@@ -179,7 +128,7 @@ class ScanDir:
         self.scan_directory(scanpath)
 
     def scan_directory(self, scanpath):
-        num_of_mp3 = 0
+        num_of_audio = 0
         log.debug(f"Scanning {scanpath}…")
         for item in os.listdir(scanpath):
             full_item = os.path.join(scanpath, item)
@@ -187,8 +136,8 @@ class ScanDir:
                 if item not in cfg.skip_dirs:
                     self.scan_directory(full_item)
             if os.path.isfile(full_item) and os.path.splitext(item)[1] in cfg.valid_extensions:
-                num_of_mp3 += 1
-        if num_of_mp3 > 0:
+                num_of_audio += 1
+        if num_of_audio > 0:
             self.directories_list.append(SongDir(scanpath))
             log.info(scanpath + " added to directory list.")
 
@@ -205,13 +154,10 @@ class ScanDir:
             i.move_all_songs()
 
 
-if __name__ == '__main__':
-
-    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/--Music/Медвежий Угол']
-    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/Deep Purple']
+def main():
     dirs_to_scan = []
 
-    for directory in cfg.scan_dir_list:
+    for directory in cfg.scan.dir_list:
         if os.path.isdir(directory):
             if os.access(directory, os.R_OK):
                 dirs_to_scan.append(ScanDir(directory))
@@ -220,12 +166,19 @@ if __name__ == '__main__':
         else:
             log.critical('Directory ' + directory + ' doesn\'t exist.')
 
-    if cfg.check_tags:
+    if cfg.tags.check_tags:
         for directory in dirs_to_scan:
             directory.check_tags()
 
     file_operations.execute()
 
-    if cfg.delete_empty_dirs:
+    if cfg.scan.delete_empty_dirs:
         for directory in dirs_to_scan:
             file_operations.delete_empty_dirs(directory)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
+
+    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/--Music/Медвежий Угол']
+    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/Deep Purple']
