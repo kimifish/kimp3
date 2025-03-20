@@ -1,33 +1,26 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python3
 #  -*- coding: utf-8 -*-
 
 import os
 import logging
-import conf_parse
 from datetime import datetime
+from config import cfg
 import song
 import file_operations
 
-# logging.basicConfig(filename='/var/log/kimifish/kimp3.log', level=logging.DEBUG)
-logger = logging.getLogger('kimp3')
-logger.info(u'•' + str(datetime.today()) + u' Starting…')
-
-# Читаем конфиги и аргументы
-config_vars = conf_parse.get_config()
-
-log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG, logging.NOTSET, ]
-logger.setLevel(log_levels[int(config_vars[u'log_level'])])
+log = logging.getLogger('kimp3')
+log.info('•' + str(datetime.today()) + ' Starting…')
 
 
 def get_config():
-    return config_vars
+    return cfg
 
 
 def test_is_album(album):
     # Метод проверяет, является ли каталог альбомом или нет. Возвращает буль.
     # Проверка простая: у всех песен тэг альбома должен быть одинаковым.
 
-    album_title_set = album.gather_tag(u'album_title')
+    album_title_set = album.gather_tag('album_title')
 
     is_album = True
     album_title = ""
@@ -37,7 +30,7 @@ def test_is_album(album):
     else:
         album_title = album_title_set.pop()
 
-    logger.debug("Directory is album: " + str(is_album) + " Album title: " + album_title)
+    log.debug("Directory is album: " + str(is_album) + ", Album title: " + album_title)
     return [is_album, album_title]
 
 
@@ -57,30 +50,30 @@ def test_is_compilation(album):
     for it_song in album.songList:
 
         # причём, если строка альбомного артиста содержится в песенном, то считаем альбомного
-        if it_song.tags.old[u'album_artist'] in it_song.tags.old[u'song_artist']:
-            if not it_song.tags.old[u'album_artist'] in song_artists.keys():
-                song_artists[it_song.tags.old[u'album_artist']] = 1
+        if it_song.tags.old['album_artist'] in it_song.tags.old['song_artist']:
+            if not it_song.tags.old['album_artist'] in song_artists.keys():
+                song_artists[it_song.tags.old['album_artist']] = 1
             else:
-                song_artists[it_song.tags.old[u'album_artist']] += 1
+                song_artists[it_song.tags.old['album_artist']] += 1
         else:
-            if not it_song.tags.old[u'song_artist'] in song_artists.keys():
-                song_artists[it_song.tags.old[u'song_artist']] = 1
+            if not it_song.tags.old['song_artist'] in song_artists.keys():
+                song_artists[it_song.tags.old['song_artist']] = 1
             else:
-                song_artists[it_song.tags.old[u'song_artist']] += 1
+                song_artists[it_song.tags.old['song_artist']] += 1
 
     # Если один артист исполняет меньше определённой доли песен от всех песен в каталоге,
     # (а насколько именно — задаётся в конфиг.файле), то каталог признаётся сборником
     # ОДНАКО, метод ничто никуда не пишет, только возвращает булевое значение.
     is_compilation = True
-    album_artist = u"Various artists"
+    album_artist = "Various artists"
 
     for artist_name in song_artists.keys():
-        if song_artists[artist_name] / len(album.songList) > float(config_vars[u'compilation_coef']):
+        if song_artists[artist_name] / len(album.songList) > float(cfg.compilation_coef):
             is_compilation = False
             album_artist = artist_name
             break
 
-    logger.debug("Album is compilation: " + str(is_compilation) + ", Album artist: " + album_artist)
+    log.debug("Album is compilation: " + str(is_compilation) + ", Album artist: " + album_artist)
     return is_compilation, album_artist
 
 
@@ -98,31 +91,33 @@ class SongDir:
 
         # Первый проход: просто читаем теги, декодируем (если нужно).
         for name in os.listdir(scanpath):
-            if os.path.isfile(os.path.join(scanpath, name)) is True and name[-4:] == '.mp3':
-                logger.debug("Appending " + os.path.join(scanpath, name))
+            if os.path.isfile(os.path.join(scanpath, name)) is True and \
+                    os.path.splitext(name)[1] in cfg.valid_extensions:
+                log.debug("Appending " + os.path.join(scanpath, name))
                 self.songList.append(song.Song(os.path.join(scanpath, name), self))
 
         self.is_album, self.album_title = test_is_album(self)
 
         if self.is_album:
-            if config_vars['compilation_test']:
+            if cfg.compilation_test:
                 self.is_compilation, self.album_artist = test_is_compilation(self)
 
             self.path = self.songList[0].path
             self.count_num_of_tracks()
 
         # Второй проход: дополняем и исправляем теги на основе данных по всему альбому
-        if config_vars[u'check_tags']:
-            logger.debug("Checking tags...")
-            for it_song in self.songList:
-                it_song.check_tags()
 
-        if config_vars[u'move_or_copy'] == u'move':
-            logger.debug("Moving files...")
+        if cfg.move_or_copy == 'move':
+            log.debug("Moving files...")
             self.move_all_songs()
-        if config_vars[u'move_or_copy'] == u'copy':
-            logger.debug("Copying files...")
+        if cfg.move_or_copy == 'copy':
+            log.debug("Copying files...")
             self.copy_all_songs()
+
+    def check_tags(self):
+        log.debug("Checking tags...")
+        for it_song in self.songList:
+            it_song.check_tags()
 
     def count_num_of_tracks(self):
         # Метод пытается понять, сколько всего должно быть треков в альбоме.
@@ -130,18 +125,13 @@ class SongDir:
         # Иначе — количество треков.
         max_track_num = 0
         for i in self.songList:
-            if i.tags.new[u'track_num_N'] == u'' or None: continue
-            if int(i.tags.new[u'track_num_N']) > max_track_num:
-                max_track_num = int(i.tags.new[u'track_num_N'])
+            if i.tags.new['tracknumber'] == '' or None: continue
+            if int(i.tags.new['tracknumber']) > max_track_num:
+                max_track_num = int(i.tags.new['tracknumber'])
         if max_track_num < len(self.songList):
             max_track_num = len(self.songList)
         self.num_of_tracks = max_track_num
-        logger.debug("Number of tracks set to " + str(self.num_of_tracks))
-
-        # Остался непонятный кусок со странной логикой. Подтереть
-        # if max_track_num == len(self.songList):
-        #     self.num_of_tracks = max_track_num
-
+        log.debug("Number of tracks set to " + str(self.num_of_tracks))
 
 
     def gather_tag(self, tag, list_needed=False):
@@ -160,13 +150,11 @@ class SongDir:
     def copy_all_songs(self):  # вызывает метод копирования файла
         for i in self.songList:
             i.copy_to()
-
         self.copy_common_album_files(file_operations.files_to_copy)
 
     def move_all_songs(self):  # вызывает метод перемещения файла
         for i in self.songList:
             i.move_to()
-
         self.copy_common_album_files(file_operations.files_to_move)
 
     def copy_common_album_files(self, operation_list):
@@ -177,7 +165,7 @@ class SongDir:
         # список, который передан в аргументах.
         for current_dir, subdirs, files in os.walk(self.path):
             for filename in files:
-                for common_file in config_vars[u'common_files']:
+                for common_file in cfg.common_files:
                     if filename.lower() == common_file.lower():
                         usual_file = song.UsualFile(os.path.join(current_dir, filename))
                         usual_file.new_path, usual_file.new_name = self.newpath, filename
@@ -188,21 +176,25 @@ class SongDir:
 class ScanDir:
     def __init__(self, scanpath):
         self.directories_list = []
-        self.dirscan(scanpath)
+        self.scan_directory(scanpath)
 
-    def dirscan(self, scanpath):
+    def scan_directory(self, scanpath):
         num_of_mp3 = 0
-        logger.debug("Scanning " + scanpath)
+        log.debug(f"Scanning {scanpath}…")
         for item in os.listdir(scanpath):
-            full_item = scanpath + '/' + item
+            full_item = os.path.join(scanpath, item)
             if os.path.isdir(full_item):
-                if item not in config_vars['skip_dirs']:
-                    self.dirscan(full_item)
-            if os.path.isfile(full_item) and item[-4:] == '.mp3':
+                if item not in cfg.skip_dirs:
+                    self.scan_directory(full_item)
+            if os.path.isfile(full_item) and os.path.splitext(item)[1] in cfg.valid_extensions:
                 num_of_mp3 += 1
         if num_of_mp3 > 0:
             self.directories_list.append(SongDir(scanpath))
-            logger.info(scanpath + " added to directory list.")
+            log.info(scanpath + " added to directory list.")
+
+    def check_tags(self):
+        for directory in self.directories_list:
+            directory.check_tags()
 
     def copy_all_dirs(self):
         for i in self.directories_list:
@@ -215,25 +207,25 @@ class ScanDir:
 
 if __name__ == '__main__':
 
-    config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/--Music/Kabanjak']
+    # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/--Music/Медвежий Угол']
     # config_vars[u'scan_dir_list'] = ['/home/kimifish/Музыка/Deep Purple']
+    dirs_to_scan = []
 
-    for folder in config_vars[u'scan_dir_list']:
-        if os.path.isdir(folder):
-            if os.access(folder, os.R_OK):
-                x = ScanDir(folder)
+    for directory in cfg.scan_dir_list:
+        if os.path.isdir(directory):
+            if os.access(directory, os.R_OK):
+                dirs_to_scan.append(ScanDir(directory))
             else:
-                logger.critical(u'Access to ' + folder + u' denied.')
-                quit()
+                log.critical('Access to ' + directory + ' denied.')
         else:
-            logger.critical(u'Directory ' + folder + u' doesn\'t exist.')
-            quit()
+            log.critical('Directory ' + directory + ' doesn\'t exist.')
 
-        # if config_vars[u'move_or_copy'] == u'move':
-        #     x.move_all_dirs()
-        # elif config_vars[u'move_or_copy'] == u'copy':
-        #     x.copy_all_dirs()
+    if cfg.check_tags:
+        for directory in dirs_to_scan:
+            directory.check_tags()
 
-        file_operations.execute()
-        if config_vars[u'delete_empty_dirs']:
-            file_operations.delete_empty_dirs(folder)
+    file_operations.execute()
+
+    if cfg.delete_empty_dirs:
+        for directory in dirs_to_scan:
+            file_operations.delete_empty_dirs(directory)
