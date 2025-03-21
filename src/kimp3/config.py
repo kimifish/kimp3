@@ -107,13 +107,21 @@ def _parse_args():
 
     cfg.update('decode', True if args.decode else False)
     cfg.update('dry_run', True if args.dry else False)
-
+    
     return args, unknown
 
 
 args, unknown = _parse_args()
 cfg.load_files([args.config_file])
 cfg.load_args(unknown)
+
+if cfg.lastfm.api_key == '.env':
+    cfg.update('lastfm.api_key', os.getenv('LASTFM_API_KEY'))
+if cfg.lastfm.api_secret == '.env':
+    cfg.update('lastfm.api_secret', os.getenv('LASTFM_API_SECRET'))
+if not isinstance(cfg.scan.dir_list, list):
+    cfg.update('scan.dir_list', [cfg.scan.dir_list])
+
 _init_logs()
 
 if __name__ == '__main__':

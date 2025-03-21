@@ -19,10 +19,10 @@ from config import cfg, APP_NAME
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 # Логинимся в Last.FM:
-network = pylast.LastFMNetwork(api_key=cfg.lastfm_API_KEY,
-                               api_secret=cfg.lastfm_API_SECRET,
-                               username=cfg.lastfm_username,
-                               password_hash=cfg.lastfm_password_hash)
+network = pylast.LastFMNetwork(api_key=cfg.lastfm.api_key,
+                               api_secret=cfg.lastfm.api_secret,
+                               username=cfg.lastfm.username,
+                               password_hash=cfg.lastfm.password_hash)
 log.info(u'Last.FM login')
 
 

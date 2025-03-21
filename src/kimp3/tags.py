@@ -3,10 +3,10 @@
 # import taglib
 import music_tag
 import logging
-from config import cfg
+from config import cfg, APP_NAME
 # import eyed3
 
-log = logging.getLogger(f"{cfg.APP_NAME}.{__name__}")
+log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 class SongTags:

@@ -3,8 +3,7 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
-from kimiconfig import Config, APP_NAME
-cfg = Config(use_dataclasses=True)
+from config import cfg, APP_NAME
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
