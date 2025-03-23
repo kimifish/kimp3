@@ -1,19 +1,18 @@
-#!/usr/bin/python3
 #  -*- coding: utf-8 -*-
-
-import os
-from shutil import copyfile
-from shutil import move, rmtree
+# pyright: basic
+# pyright: reportAttributeAccessIssue=false
 
 import errno
-import logging
-
-from config import cfg
 import song
 import tags
 import interface.utils
+import os
+import logging
+from shutil import copyfile
+from shutil import move, rmtree
+from config import cfg, APP_NAME
+log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
-logger = logging.getLogger(__name__)
 
 dirs_to_create = []
 files_to_copy = []
@@ -36,7 +35,7 @@ def create_dirs():
         if not os.path.exists(future_path):
             try:
                 os.makedirs(future_path, mode=0o755)
-                logger.info("Creating directory " + future_path)
+                log.info("Creating directory " + future_path)
                 if cfg.dry_run:
                     os.rmdir(future_path)
             except OSError as e:
@@ -67,17 +66,17 @@ def move_copy_operation(file_list, operation):
                 continue
 
         if song_file.filepath == song_file.new_filepath:
-            logger.info("File " + song_file.new_name + " already in place. Skipping...")
+            log.info("File " + song_file.new_name + " already in place. Skipping...")
             if isinstance(song_file, song.Song):
                 song_file.tags.write_tags()
             continue
 
         if os.path.isdir(song_file.new_filepath):
-            logger.warning("File's destination path is occupied by directory. Skipping...")
+            log.warning("File's destination path is occupied by directory. Skipping...")
             continue
 
         if os.access(song_file.new_path, os.W_OK):
-            logger.info(log_text + song_file.filepath + " to " + song_file.new_path)
+            log.info(log_text + song_file.filepath + " to " + song_file.new_path)
             if not cfg.dry_run:
                 operation(song_file.filepath, song_file.new_filepath)
                 if isinstance(song_file, song.Song):
@@ -96,8 +95,8 @@ def create_symlinks():
 
 
 def execute():
-    logger.debug('Copy files list consists of ' + str(len(files_to_copy)) + ' entries.')
-    logger.debug('Move files list consists of ' + str(len(files_to_move)) + ' entries.')
+    log.debug('Copy files list consists of ' + str(len(files_to_copy)) + ' entries.')
+    log.debug('Move files list consists of ' + str(len(files_to_move)) + ' entries.')
     create_dirs()
     copy_files()
     move_files()
@@ -110,15 +109,15 @@ def delete_empty_dirs(root_dir):
         # Удаляем мусорные файлы и папки
         for filename in files:
             if filename in cfg.skip_files:
-                logger.info('Removing junky ' + filename + " from " + current_dir)
+                log.info('Removing junky ' + filename + " from " + current_dir)
                 os.remove(os.path.join(current_dir, filename))
                 files.remove(filename)
         for dirname in subdirs:
             if dirname in cfg.skip_dirs:
-                logger.info('Removing junky ' + dirname + " from " + current_dir)
+                log.info('Removing junky ' + dirname + " from " + current_dir)
                 rmtree(os.path.join(current_dir, dirname))
                 subdirs.remove(dirname)
 
         if len(files) == 0 and len(subdirs) == 0:
             os.rmdir(current_dir)
-            logger.info("Deleting empty " + current_dir)
+            log.info("Deleting empty " + current_dir)

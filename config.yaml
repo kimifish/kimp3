@@ -7,7 +7,8 @@ scan:
   # List of directories to scan (comma-separated)
   # dir_list = '/media/kimifish/MediaStore/Музыка, /home/kimifish/Downloads'
   # dir_list: '/home/pi/Downloads'
-  dir_list: '/home/kimifish/kimiside@gmail.com/Music/Песенник'
+  # dir_list: '/home/kimifish/kimiside@gmail.com/Music/Песенник'
+  dir_list: '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
 
   # Directory names to skip while parsing:
   skip_dirs: ['.unwanted', '.AppleDouble']
@@ -77,6 +78,7 @@ lastfm:
   # Obtain yours from http://www.last.fm/api/account for Last.fm
   api_key: .env
   api_secret: .env
+  discogs_token: .env
 
   # In order to perform a write operation you need to authenticate yourself
   username: "kimifish"
@@ -86,7 +88,7 @@ lastfm:
   autocorrection: True
 
   # Tags below won't be added to id3 tag list.
-  banned_tags: 'song, favorite artists, top artists,
+  banned_tags: 'song, favorite artists, top artists, the best, best,
     1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
     hit, favorite by this group, new, la la la,
     popular, increasingly popular, top 40,
@@ -100,9 +102,11 @@ lastfm:
     1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
     2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
     2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033,
-    gay, albums I own, favorite albums, favourite albums, loved, awesome, good songs,
-    1001 Albums You Must Hear Before You Die, vinyl, deep purple,
-    seen live,
+    gay, albums i own, favorite albums, favourite albums, loved, awesome, good songs,
+    1001 albums you must hear before you die, vinyl, deep purple,
+    seen live, alternative, niravana - nevermind, kurt cobain,
+    streamable albums, fully streamable albums, adriano, 
+    top100albumsbyme, ddt, japanese,
     '
 
   # Merge tags from every list below to the first tag only.
@@ -115,17 +119,21 @@ lastfm:
     - ['pop rock', 'pop-rock', 'pop/rock', 'rockpop', 'poprock']
     - ['folk rock', 'folk-rock']
     - ['folk', 'folc']
-    - ['euro pop', 'europop']
+    - ['euro pop', 'europop', 'euro-pop']
+    - ['dance', 'dance pop', 'dance-pop']
+    - ['disco', 'euro disco', 'euro-disco']
     - ['female vocalist', 'female vocals', 'female vocal', 'female vocalists']
     - ['male vocalist', 'male vocals', 'male vocalists', 'male vocal']
     - ['electroswing', 'electro swing', 'electro-swing']
     - ['nu jazz', 'nu-jazz']
     - ['electronic', 'electronica']
-    - ['french', 'french artists']
+    - ['french', 'france', 'french artists']
     - ['indie', 'indie rock', 'indie-rock']
+    - ['rock', 'alternative rock', 'alt rock', 'alternative-rock',]
+    - ['russian', 'russia', 'russian artists']
 
   # If tag matches regex pattern, it will be accepted as key.
-  similar_tags_patterns:
+  similar_tags_patterns:  # NOT WORKING
     'punk rock': "punk.*rock"
 
 tags:
@@ -137,11 +145,12 @@ tags:
   check_tags: True
 
 logging:
-  level: "INFO"
+  # level: "INFO"
+  level: "DEBUG"
   loggers:
     suppress:
       - "httpx"
       - "httpcore"
       - "mutagen"
-      - "uvicorn"
+      - "pylast"
     suppress_level: "WARNING"

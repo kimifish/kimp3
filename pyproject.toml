@@ -9,5 +9,6 @@ dependencies = [
     "music-tag>=0.4.3",
     "mutagen>=1.47.0",
     "pylast>=5.5.0",
+    "python3-discogs-client>=2.8",
     "rich>=13.9.4",
 ]

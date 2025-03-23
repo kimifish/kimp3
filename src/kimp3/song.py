@@ -1,111 +1,32 @@
-#!/usr/bin/python3
-#  -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+# pyright: basic
+# pyright: reportAttributeAccessIssue=false
 
 import logging
-import os
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
+from typing import Optional, List
 
-from mutagen import File as MutaFile
+from mutagen._file import File as MutaFile
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, COMM
+from mutagen.id3 import ID3
 
 import file_operations
-import lastfm
+from models import AudioTags
 from config import cfg, APP_NAME
+import lastfm
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
-@dataclass
-class AudioTags:
-    """Модель для хранения тегов аудио файла."""
-    title: str = ""
-    artist: str = ""
-    album: str = ""
-    album_artist: str = ""
-    track_number: Optional[int] = None
-    total_tracks: Optional[int] = None
-    disc_number: Optional[int] = None
-    total_discs: Optional[int] = None
-    year: Optional[int] = None
-    genre: str = ""
-    comment: str = ""
-    compilation: bool = False
-    lastfm_tags: str = ""  # Добавляем поле для lastfm тегов
-    rating: str = ""       # Добавляем поле для рейтинга
-
-    @classmethod
-    def from_mutagen(cls, easy_tags: EasyID3, id3: ID3) -> 'AudioTags':
-        """Создает объект AudioTags из EasyID3 и ID3."""
-        def get_tag_value(key: str) -> str:
-            try:
-                return easy_tags.get(key, [''])[0]
-            except (IndexError, KeyError):
-                return ''
-
-        def get_comment(desc: str) -> str:
-            """Извлекает комментарий с определенным описанием."""
-            for key, frame in id3.items():
-                if key.startswith('COMM:') and frame.desc == desc:
-                    return frame.text
-            return ''
-
-        track_info = cls._parse_track_number(get_tag_value('tracknumber'))
-        disc_info = cls._parse_track_number(get_tag_value('discnumber'))
-
-        return cls(
-            title=get_tag_value('title'),
-            artist=get_tag_value('artist'),
-            album=get_tag_value('album'),
-            album_artist=get_tag_value('albumartist'),
-            track_number=track_info[0],
-            total_tracks=track_info[1],
-            disc_number=disc_info[0],
-            total_discs=disc_info[1],
-            year=cls._parse_year(get_tag_value('date')),
-            genre=get_tag_value('genre'),
-            comment=get_tag_value('comment'),
-            compilation=bool(get_tag_value('compilation')),
-            lastfm_tags=get_comment('LastFM tags'),
-            rating=get_comment('Rating')
-        )
-
-    @staticmethod
-    def _parse_track_number(value: str) -> tuple[Optional[int], Optional[int]]:
-        """Парсит строку с номером трека/диска в формате 'number/total'."""
-        if not value:
-            return None, None
-        parts = value.split('/')
-        try:
-            number = int(parts[0]) if parts[0] else None
-            total = int(parts[1]) if len(parts) > 1 and parts[1] else None
-            return number, total
-        except (ValueError, IndexError):
-            return None, None
-
-    @staticmethod
-    def _parse_year(value: str) -> Optional[int]:
-        """Извлекает год из строки даты."""
-        if not value:
-            return None
-        try:
-            # Берем первые 4 символа как год
-            return int(value[:4])
-        except (ValueError, IndexError):
-            return None
-
-
 class UsualFile:
-    def __init__(self, filepath: str | Path):
+    def __init__(self, filepath: str | Path, song_dir=None):
         self.filepath = Path(filepath)
-        log.debug(' + ' + str(self.filepath))
         self.path = self.filepath.parent
         self.name = self.filepath.name
         self.new_filepath: Path = Path()
         self.new_name: str = ''
         self.new_path: Path = Path()
+        self.song_dir = song_dir
 
     def print_changes(self) -> None:
         print(f"{self.filepath} ---> {self.new_filepath}")
@@ -116,11 +37,10 @@ class AudioFile(UsualFile):
     Класс для работы с MP3-файлом, включая его теги и операции перемещения/копирования.
     """
     def __init__(self, filepath: str | Path, song_dir=None):
-        super().__init__(filepath)
+        super().__init__(filepath, song_dir)
+        
         self.genre_paths: List[Path] = []
-        self.song_dir = song_dir
         self.tags = self._read_tags()
-        self._calculate_new_paths()
 
     def _read_tags(self) -> AudioTags:
         """Читает теги из файла, используя mutagen."""
@@ -249,11 +169,31 @@ class AudioFile(UsualFile):
         for genre_path in self.genre_paths:
             file_operations.files_to_create_link.append([str(self.new_filepath), str(genre_path)])
 
-    def print_changes(self):
-        for tag in self.tags.old:
-            print("{}: {} ---> {}".format(tag, self.tags.old[tag], self.tags.new[tag]))
-        super(AudioFile, self).print_changes()
-        print("----------------------------------")
+    def print_changes(self) -> None:
+        """Выводит изменения в тегах и пути файла."""
+        # Выводим изменения в тегах
+        if self.tags.old != self.tags.new:
+            print("\nTag changes:")
+            for field in ['title', 'artist', 'album', 'album_artist', 
+                         'genre', 'year', 'track_number', 'total_tracks', 
+                         'disc_number', 'total_discs']:
+                old_value = getattr(self.tags.old, field, '')
+                new_value = getattr(self.tags.new, field, '')
+                if old_value != new_value:
+                    print(f"  {field}: {old_value or '<empty>'} → {new_value or '<empty>'}")
+        
+        # Выводим изменение пути файла
+        if self.filepath != self.new_filepath:
+            print("\nFile path change:")
+            print(f"  {self.filepath}\n  → {self.new_filepath}")
+        
+        # Выводим информацию о символических ссылках для жанров
+        if self.genre_paths:
+            print("\nGenre symlinks will be created in:")
+            for path in self.genre_paths:
+                print(f"  {path}")
+        
+        print("\n" + "-" * 50)
 
     def _printall(self):
         print(self.filepath)
@@ -266,5 +206,38 @@ class AudioFile(UsualFile):
         print('Year: ' + self.tags.new['year'])
         print('Track: ' + self.tags.new['track_num'] + "/" + self.tags.new['num_of_tracks'])
 
-        # def __str__(self):
-        #     print(self.tags[u'song_artist'] + u' — ' + self.tags[u'song_title'])
+    def check_tags(self) -> dict[str, tuple[str, str]]:
+        """Проверяет и корректирует теги через Last.FM.
+        
+        Returns:
+            Словарь изменений в формате {поле: (старое_значение, новое_значение)}
+        """
+        if not cfg.tags.check_tags:
+            return {}
+
+        changes = {}
+        old_tags = AudioTags(
+            title=self.tags.title,
+            artist=self.tags.artist,
+            album=self.tags.album,
+            album_artist=self.tags.album_artist,
+            genre=self.tags.genre
+        )
+        
+        try:
+            # Обновляем теги через Last.FM
+            self.tags = lastfm.update_tags_from_lastfm(self.tags)
+            
+            # Собираем изменения
+            for field in ['title', 'artist', 'album', 'album_artist', 'genre']:
+                old_value = getattr(old_tags, field)
+                new_value = getattr(self.tags, field)
+                
+                if old_value != new_value:
+                    changes[field] = (old_value or '<empty>', new_value)
+                    log.info(f"Tag '{field}' corrected from '{old_value}' to '{new_value}' "
+                            f"for {self.filepath.name}")
+        except Exception as e:
+            log.error(f"Error checking tags for {self.filepath}: {e}")
+        
+        return changes

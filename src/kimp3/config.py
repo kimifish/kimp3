@@ -119,11 +119,13 @@ if cfg.lastfm.api_key == '.env':
     cfg.update('lastfm.api_key', os.getenv('LASTFM_API_KEY'))
 if cfg.lastfm.api_secret == '.env':
     cfg.update('lastfm.api_secret', os.getenv('LASTFM_API_SECRET'))
+if cfg.lastfm.discogs_token == '.env':
+    cfg.update('lastfm.discogs_token', os.getenv('DISCOGS_TOKEN'))
 if not isinstance(cfg.scan.dir_list, list):
     cfg.update('scan.dir_list', [cfg.scan.dir_list])
 
 _init_logs()
 
 if __name__ == '__main__':
-    cfg.print_config()
+    # cfg.print_config()
     sys.exit(0)
