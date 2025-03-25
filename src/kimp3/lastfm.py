@@ -3,8 +3,10 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
+import re
 from typing import List, Optional, Dict, Tuple, Set
 from operator import attrgetter
+from unittest import result
 import pylast
 from config import cfg, APP_NAME
 from models import AudioTags
@@ -27,7 +29,7 @@ _genre_cache: Dict[Tuple[str, str], str] = {}  # (artist, album) -> genre
 _artist_tags_cache: Dict[str, str] = {}  # (artist, album, track) -> tags
 _album_tags_cache: Dict[Tuple[str, str], str] = {}  # (artist, album, track) -> tags
 
-class LastFMTrack():
+class TaggedTrack():
     def __init__(self, tags: AudioTags):
         self.tags = tags
 
@@ -39,17 +41,18 @@ class LastFMTrack():
 
         self.album: pylast.Album = network.get_album(self.artist.name or tags.artist, tags.album)
         self.album_artist: pylast.Artist = network.get_artist(tags.album_artist or tags.artist)
-        self.track_number = tags.track_number
-        self.total_tracks = tags.total_tracks
-        self.disc_number = tags.disc_number
-        self.total_discs = tags.total_discs
-        self.year = tags.year
+        self.track_number: Optional[int] = tags.track_number
+        self.total_tracks: Optional[int] = tags.total_tracks
+        self.disc_number: Optional[int] = tags.disc_number
+        self.total_discs: Optional[int] = tags.total_discs
+        self.year: Optional[str] = tags.year
         self.update_album_data()
 
-        self.lastfm_tags = tags.lastfm_tags
+        self.genre: str = tags.genre
+        self.lastfm_tags: str = tags.lastfm_tags
         self.update_tags()
 
-        self.rating = tags.rating
+        self.rating: str = tags.rating
 
         log.debug(self)
 
@@ -61,9 +64,10 @@ class LastFMTrack():
             "title": self.track.title if self.track else None,
             "track": f"{self.track_number}/{self.total_tracks}" if self.track_number else None,
             "disc": f"{self.disc_number}/{self.total_discs}" if self.disc_number else None,
-            "year": self.year,
-            "lastfm_tags": self.lastfm_tags,
-            "rating": self.rating
+            "year": self.year if self.year else None,
+            "genre": self.genre if self.genre else None,
+            "lastfm_tags": self.lastfm_tags if self.lastfm_tags else None,
+            "rating": self.rating if self.rating else None,
         }
         
         # Remove None values for cleaner output
@@ -156,12 +160,29 @@ class LastFMTrack():
         artist_tags = _get_tags(self.artist, min_weight=50)
         album_tags = _get_tags(self.album, min_weight=10)
         track_tags = _get_tags(self.track, min_weight=5)
-        self.lastfm_tags = process_lastfm_tags(
+        self.genre, self.lastfm_tags = process_lastfm_tags(
             artist_tags, album_tags, track_tags, 
+            existing_genre=self.genre,
+            existing_tags=self.lastfm_tags,
             artist_name=self.artist.name or self.tags.artist,
             track_title=self.track.title or self.tags.title,
             )
 
+    def get_audiotags(self) -> AudioTags:
+        return AudioTags(
+            title=self.track.title or self.tags.title,
+            artist=self.artist.name or self.tags.artist,
+            album=self.album.title or self.tags.album,
+            album_artist=self.album_artist.name or self.tags.album_artist,
+            track_number=self.track_number or self.tags.track_number,
+            total_tracks=self.total_tracks or self.tags.total_tracks,
+            disc_number=self.disc_number or self.tags.disc_number,
+            total_discs=self.total_discs or self.tags.total_discs,
+            year=self.year or self.tags.year,
+            genre=self.genre,
+            lastfm_tags=self.lastfm_tags,
+            rating=self.rating
+        )
 
 def init_lastfm():
     """Инициализация подключения к Last.FM."""
@@ -204,6 +225,46 @@ def _get_artist_albums(artist_name: str) -> List[pylast.TopItem]:
     except pylast.WSError:
         log.warning(f'Last.FM: Failed to get artist albums - {artist_name}')
         return []
+
+
+def _get_tags(
+    obj: pylast.Album | pylast.Artist | pylast.Track, 
+    min_weight: int = TAG_MIN_WEIGHT,
+    ) -> List[pylast.TopItem]:
+    """Получает теги объекта Last.FM."""
+
+    global _artist_tags_cache
+    global _album_tags_cache
+
+    cache_key, cache = None, None
+
+    if isinstance(obj, pylast.Artist):
+        cache_key = obj.name
+        cache = _artist_tags_cache
+    elif isinstance(obj, pylast.Album):
+        if obj.artist and obj.title:
+            cache_key = (obj.artist.name, obj.title)
+            cache = _album_tags_cache
+
+    if cache_key is not None and cache is not None and cache_key in cache:
+        if cache:
+            return cache[cache_key]  # type: ignore
+
+    try:
+        lastfm_raw_tags = obj.get_top_tags()
+    except pylast.WSError:
+        log.warning('Last.FM: Failed to get tags')
+        return list()
+
+    lastfm_tags = list()
+    for tag_obj in lastfm_raw_tags:
+        if int(tag_obj.weight) < min_weight:
+            continue
+        lastfm_tags.append(tag_obj)
+
+    if cache is not None:
+        cache[cache_key] = lastfm_tags[0:NUMBER_OF_TAGS*2]  # type: ignore
+    return lastfm_tags[0:NUMBER_OF_TAGS*2]
 
 
 def get_genre(tags: AudioTags) -> str:
@@ -260,59 +321,22 @@ def get_cache_stats() -> Dict[str, int]:
     }
 
 
-def _get_tags(
-    obj: pylast.Album | pylast.Artist | pylast.Track, 
-    min_weight: int = TAG_MIN_WEIGHT,
-    ) -> List[pylast.TopItem]:
-    """Получает теги объекта Last.FM."""
-
-    global _artist_tags_cache
-    global _album_tags_cache
-
-    cache_key, cache = None, None
-
-    if isinstance(obj, pylast.Artist):
-        cache_key = obj.name
-        cache = _artist_tags_cache
-    elif isinstance(obj, pylast.Album):
-        if obj.artist and obj.title:
-            cache_key = (obj.artist.name, obj.title)
-            cache = _album_tags_cache
-
-    if cache_key is not None and cache is not None and cache_key in cache:
-        if cache:
-            return cache[cache_key]  # type: ignore
-
-    try:
-        lastfm_raw_tags = obj.get_top_tags()
-    except pylast.WSError:
-        log.warning('Last.FM: Failed to get tags')
-        return list()
-
-    lastfm_tags = list()
-    for tag_obj in lastfm_raw_tags:
-        if int(tag_obj.weight) < min_weight:
-            continue
-        lastfm_tags.append(tag_obj)
-
-    if cache is not None:
-        cache[cache_key] = lastfm_tags[0:NUMBER_OF_TAGS*2]  # type: ignore
-    return lastfm_tags[0:NUMBER_OF_TAGS*2]
-
-
 def process_lastfm_tags(
     artist_tags: List[pylast.TopItem],
     album_tags: List[pylast.TopItem],
     track_tags: List[pylast.TopItem],
+    existing_genre: str = "",
+    existing_tags: str = "",
     artist_name: str = "",
     track_title: str = "",
     num: int = NUMBER_OF_TAGS, 
-    ) -> str:
+    ) -> Tuple[str, str]:
     """Обрабатывает теги из Last.FM."""
 
-    result_tags = set()
+    tags_set = set()
     for tags in [track_tags, album_tags, artist_tags]:
         # for tag_obj in sorted(tags, key=attrgetter('weight'), reverse=True)[0:min(num, len(tags) - 1)]:
+        # log.debug(pretty_repr(tags_list_to_str_list(tags)))
         for tag_obj in tags[0:min(num, len(tags) - 1)]:
                 
             tag = tag_obj.item.get_name().lower()
@@ -321,18 +345,47 @@ def process_lastfm_tags(
                 continue
             if tag == track_title.lower():
                 continue
-            
-            # Проверяем схожие теги и используем основной тег из группы
-            for similar_tags in cfg.lastfm.similar_tags:
-                similar_tags = list(similar_tags)
-                if tag in similar_tags:
-                    tag = similar_tags[0]
-                    break
-                    
-            if tag not in cfg.lastfm.banned_tags:
-                result_tags.add(tag)
+            tags_set.add(tag)
 
-    return ", ".join(result_tags)
+    tags_set.update(item.strip().lower() for item in re.split('[,/]', existing_tags))
+    tags_set.update(item.strip().lower() for item in re.split('[,/]', existing_genre))
+    log.debug(pretty_repr(tags_set))
+
+    result_genre = set()
+    result_tags = set()
+    for tag in tags_set:
+
+        if not tag:
+            continue
+
+        # Проверяем схожие теги и используем основной тег из группы
+        for similar_tags in cfg.lastfm.similar_tags:
+            # similar_tags = list(similar_tags)
+            if tag in similar_tags:
+                tag = similar_tags[0]
+                break
+
+        for pattern_list in cfg.lastfm.similar_tags_patterns:
+            if any(re.match(pattern, tag) for pattern in pattern_list[1:]):
+                tag = pattern_list[0]
+                break
+
+        if tag in cfg.lastfm.banned_tags:
+            continue
+
+        if any(re.match(pattern, tag) for pattern in cfg.lastfm.banned_tags_patterns):
+            continue
+
+        if tag in cfg.lastfm.banned_artists_from_tags.__dict__:
+            if artist_name.lower() in cfg.lastfm.banned_artists_from_tags.__dict__[tag]:
+                continue
+
+        if tag in cfg.lastfm.genres:
+            result_genre.add(tag)
+            continue
+        result_tags.add(tag)
+
+    return ", ".join(result_genre), ", ".join(result_tags)
 
 
 def normalize_string(s: str) -> str:
@@ -345,3 +398,7 @@ def string_similarity(str1: str, str2: str, min_ratio: float = 0.8) -> bool:
     Returns True if similarity ratio >= min_ratio
     """
     return SequenceMatcher(None, str1.lower(), str2.lower()).ratio() >= min_ratio
+
+
+def tags_list_to_str_list(tags: List[pylast.TopItem]) -> List[str]:
+    return [tag.item.get_name() for tag in tags]

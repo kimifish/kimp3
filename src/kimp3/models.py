@@ -1,6 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
+from token import OP
 from typing import Optional
 
 from mutagen.easyid3 import EasyID3
@@ -52,7 +53,7 @@ class AudioTags:
     total_tracks: Optional[int] = None
     disc_number: Optional[int] = None
     total_discs: Optional[int] = None
-    year: Optional[int] = None
+    year: str = ""
     genre: str = ""
     comment: str = ""
     compilation: bool = False

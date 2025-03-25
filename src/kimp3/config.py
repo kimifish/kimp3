@@ -12,6 +12,8 @@ from rich.logging import RichHandler
 from rich.traceback import install as install_rich_traceback 
 from dotenv import load_dotenv
 from kimiconfig import Config
+import re
+from typing import List, Pattern
 cfg = Config(use_dataclasses=True)
 install_rich_traceback(show_locals=True)
 
@@ -111,6 +113,34 @@ def _parse_args():
     return args, unknown
 
 
+def _compile_patterns():
+    """Compile regex patterns from config for better performance."""
+    log.debug("Compiling regex patterns")
+    
+    # Compile banned_tags_patterns
+    if hasattr(cfg.lastfm, 'banned_tags_patterns'):
+        patterns: List[Pattern] = []
+        for pattern in cfg.lastfm.banned_tags_patterns:
+            try:
+                patterns.append(re.compile(pattern))
+            except re.error as e:
+                log.warning(f"Invalid regex pattern '{pattern}': {e}")
+        cfg.update('lastfm.banned_tags_patterns', patterns)
+    
+    # Compile similar_tags_patterns
+    if hasattr(cfg.lastfm, 'similar_tags_patterns'):
+        compiled_patterns_lists = []
+        for pattern_list in cfg.lastfm.similar_tags_patterns:
+            compiled_patterns = [pattern_list[0]] 
+            for pattern in pattern_list[1:]:
+                try:
+                    compiled_patterns.append(re.compile(pattern))
+                except re.error as e:
+                    log.warning(f"Invalid regex pattern for '{pattern}': {e}")
+            compiled_patterns_lists.append(compiled_patterns)
+        cfg.update('lastfm.similar_tags_patterns', compiled_patterns_lists)
+
+# Load config and compile patterns
 args, unknown = _parse_args()
 cfg.load_files([args.config_file])
 cfg.load_args(unknown)
@@ -124,6 +154,7 @@ if cfg.lastfm.discogs_token == '.env':
 if not isinstance(cfg.scan.dir_list, list):
     cfg.update('scan.dir_list', [cfg.scan.dir_list])
 
+_compile_patterns()
 _init_logs()
 
 if __name__ == '__main__':

@@ -107,7 +107,7 @@ class AudioFile(UsualFile):
                 pattern = cfg.paths.patterns.album
 
             # Добавляем номер диска только если их больше одного
-            if not self.tags.total_discs or self.tags.total_discs <= 1:
+            if not self.tags.total_discs or int(self.tags.total_discs) <= 1:
                 pattern = pattern.replace(' (CD%disc_num)', '')
                 genre_pattern = genre_pattern.replace(' (CD%disc_num)', '')
 
@@ -221,20 +221,29 @@ class AudioFile(UsualFile):
             artist=self.tags.artist,
             album=self.tags.album,
             album_artist=self.tags.album_artist,
-            genre=self.tags.genre
+            track_number=self.tags.track_number,
+            total_tracks=self.tags.total_tracks,
+            disc_number=self.tags.disc_number,
+            total_discs=self.tags.total_discs,
+            year=self.tags.year,
+            lastfm_tags=self.tags.lastfm_tags,
+            genre=self.tags.genre,
+            comment=self.tags.comment,
+            compilation=self.tags.compilation,
+            rating=self.tags.rating
         )
         
         try:
             # Обновляем теги через Last.FM
-            self.tags = lastfm.update_tags_from_lastfm(self.tags)
+            self.tags = lastfm.TaggedTrack(self.tags).get_audiotags()
             
             # Собираем изменения
-            for field in ['title', 'artist', 'album', 'album_artist', 'genre']:
+            for field in AudioTags.__annotations__:
                 old_value = getattr(old_tags, field)
                 new_value = getattr(self.tags, field)
                 
                 if old_value != new_value:
-                    changes[field] = (old_value or '<empty>', new_value)
+                    changes[field] = (old_value or '<empty>', new_value or '<empty>')
                     log.info(f"Tag '{field}' corrected from '{old_value}' to '{new_value}' "
                             f"for {self.filepath.name}")
         except Exception as e:

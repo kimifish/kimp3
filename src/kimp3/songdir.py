@@ -191,7 +191,7 @@ class SongDir:
         log.debug("Checking tags...")
         changes = {}
         for audio_file in self.audio_files:
-            changes[str(self.path).replace(self.parent.path, '')] = audio_file.check_tags()
+            changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.check_tags()
         return changes
 
     def gather_tag_values(self, tag_name: str) -> Set[str]:
