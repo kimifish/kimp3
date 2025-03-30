@@ -24,7 +24,7 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 network: pylast.LastFMNetwork
 
-# Кэши для хранения исправлений
+# Caches for storing corrections
 _artist_corrections: Dict[str, str] = {}
 _album_corrections: Dict[Tuple[str, str], str] = {}  # (artist, album) -> corrected_album
 _artist_albums_cache: Dict[str, List[pylast.TopItem]] = {}  # artist -> albums
@@ -114,14 +114,14 @@ class TaggedTrack():
             return artist.name
 
     def _correct_album_name(self, album: pylast.Album) -> Optional[str]:
-        """Получает корректное название альбома из Last.FM или кэша."""
+        """Gets corrected album name from Last.FM or cache."""
         if not album or not album.title or not album.artist or not album.artist.name:
             log.warning(f'Album doesn\'t have enough data - {album}')
             return None
 
         cache_key = (album.artist.name, album.title)
         
-        # Проверяем кэш
+        # Check cache
         if cache_key in _album_corrections:
             return _album_corrections[cache_key]
             
@@ -134,12 +134,12 @@ class TaggedTrack():
                     corrected = iter_album.item.title
                     break
             
-            # Сохраняем в кэш
+            # Save to cache
             _album_corrections[cache_key] = corrected
             album.title = corrected
         except pylast.WSError:
             log.warning(f'Last.FM: Album not found - {self.tags.artist} - {self.tags.album}')
-            # Кэшируем отсутствие исправлений
+            # Cache the absence of corrections
             _album_corrections[cache_key] = album.title
         finally:
             return album.title
@@ -236,7 +236,7 @@ class TaggedTrack():
 
 
 def init_lastfm():
-    """Инициализация подключения к Last.FM."""
+    """Initialize Last.FM connection."""
     global network
     network = pylast.LastFMNetwork(api_key=cfg.tags.lastfm_api_key,
                                 api_secret=cfg.tags.lastfm_api_secret,
@@ -252,7 +252,7 @@ def _get_album_tracks(album: pylast.Album) -> List[pylast.Track]:
 
     cache_key = (album.artist.name, album.title)
     
-    # Проверяем кэш
+    # Check cache
     if cache_key in _album_tracks_cache:
         return _album_tracks_cache[cache_key]
 
@@ -282,7 +282,7 @@ def _get_tags(
     obj: pylast.Album | pylast.Artist | pylast.Track, 
     min_weight: int = TAG_MIN_WEIGHT,
     ) -> List[pylast.TopItem]:
-    """Получает теги объекта Last.FM."""
+    """Gets tags from Last.FM object."""
 
     global _artist_tags_cache
     global _album_tags_cache
@@ -319,10 +319,10 @@ def _get_tags(
 
 
 def get_genre(tags: AudioTags) -> str:
-    """Получает жанры на основе тегов альбома и исполнителя."""
+    """Gets genres based on album and artist tags."""
     cache_key = (tags.album_artist, tags.album)
     
-    # Проверяем кэш
+    # Check cache
     if cache_key in _genre_cache:
         return _genre_cache[cache_key]
         
@@ -333,7 +333,7 @@ def get_genre(tags: AudioTags) -> str:
         genre_tags = _get_tags(album)
         artist_tags = _get_tags(artist)
         
-        # Объединяем теги альбома и исполнителя
+        # Combine album and artist tags
         all_tags = genre_tags.copy()
         for tag in artist_tags:
             if tag not in all_tags:
@@ -344,12 +344,12 @@ def get_genre(tags: AudioTags) -> str:
             
         genre = ", ".join(all_tags).title()  # type: ignore
         
-        # Сохраняем в кэш
+        # Save to cache
         _genre_cache[cache_key] = genre
         return genre
     except pylast.WSError:
         log.warning(f'Last.FM: Failed to get genre for {tags.artist} - {tags.album}')
-        # Кэшируем пустой результат
+        # Cache empty result
         _genre_cache[cache_key] = ""
         return ""
 
@@ -521,10 +521,10 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
         if not lyrics_containers:
             return None
             
-        # Собираем текст из всех контейнеров
+        # Combine text from all containers
         lyrics = ''
         for container in lyrics_containers:
-            # Извлекаем текст, сохраняя переносы строк
+            # Extract text, keeping line breaks
             for elem in container.stripped_strings:
                 lyrics += elem + '\n'
         
@@ -649,12 +649,10 @@ def process_lastfm_tags(
     track_title: str = "",
     num: int = NUMBER_OF_TAGS, 
     ) -> Tuple[str, str]:
-    """Обрабатывает теги из Last.FM."""
+    """Processes tags from Last.FM."""
 
     tags_set = set()
     for tags in [track_tags, album_tags, artist_tags]:
-        # for tag_obj in sorted(tags, key=attrgetter('weight'), reverse=True)[0:min(num, len(tags) - 1)]:
-        # log.debug(pretty_repr(tags_list_to_str_list(tags)))
         for tag_obj in tags[0:min(num, len(tags) - 1)]:
                 
             tag = tag_obj.item.get_name().lower()
@@ -677,9 +675,8 @@ def process_lastfm_tags(
         if not tag:
             continue
 
-        # Проверяем схожие теги и используем основной тег из группы
+        # Check similar tags and use the main tag from the group
         for similar_tags in cfg.tags.similar_tags:
-            # similar_tags = list(similar_tags)
             if tag in similar_tags:
                 tag = similar_tags[0]
                 break

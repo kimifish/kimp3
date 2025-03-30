@@ -109,10 +109,10 @@ def move_copy_operation(file_list, operation_to_process: FileOperation):
 
 def create_symlinks():
     for action in files_to_create_link:
-        # Если ссылка существует, удаляем нахер
         log.debug(f"Creating symlink {action[0]} → {action[1]}")
         if cfg.dry_run:
             continue
+        # If link exists, delete it
         if os.path.islink(action[1]):
             os.remove(action[1])
         os.symlink(action[0], action[1])
@@ -129,7 +129,7 @@ def execute():
 
 def delete_empty_dirs(root_dir):
     for current_dir, subdirs, files in os.walk(root_dir):
-        # Удаляем мусорные файлы и папки
+        # Remove junk files and directories
         for filename in files:
             if filename in cfg.scan.skip_files:  # Updated path
                 log.info(f'Removing junky {filename} from {current_dir}')
