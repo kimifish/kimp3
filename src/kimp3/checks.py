@@ -9,9 +9,16 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 def test_is_album(album):
-    # Метод проверяет, является ли каталог альбомом или нет. Возвращает буль.
-    # Проверка простая: у всех песен тэг альбома должен быть одинаковым.
-
+    """Checks if the directory is an album.
+    
+    Simple check: all songs must have the same album tag.
+    
+    Args:
+        album: SongDir object with audio files
+        
+    Returns:
+        tuple[bool, str]: (is album, album title)
+    """
     album_title_set = album.gather_tag_values('album')
 
     is_album = True
@@ -27,23 +34,23 @@ def test_is_album(album):
 
 
 def test_is_compilation(album) -> tuple[bool, str]:
-    """Проверяет, является ли альбом сборником.
+    """Checks if the album is a compilation.
     
-    Альбом считается сборником, если ни один исполнитель не исполняет больше
-    определенной доли (compilation_coef) всех песен в альбоме.
+    An album is considered a compilation if no artist performs more than
+    a certain proportion (compilation_coef) of all songs in the album.
     
     Args:
-        album: Объект SongDir с аудио файлами
+        album: SongDir object with audio files
         
     Returns:
-        tuple[bool, str]: (является ли сборником, имя исполнителя альбома)
+        tuple[bool, str]: (is compilation, album artist name)
     """
-    # Подсчитываем количество песен для каждого исполнителя
+    # Count songs for each artist
     artist_counts = {}
     total_tracks = len(album.audio_files)
     
     for track in album.audio_files:
-        # Используем album_artist если он есть, иначе song_artist
+        # Use album_artist if available, otherwise song_artist
         artist = track.tags.album_artist or track.tags.song_artist
         if not artist:
             continue
@@ -53,11 +60,11 @@ def test_is_compilation(album) -> tuple[bool, str]:
     if not artist_counts:
         return True, "Various Artists"
     
-    # Находим исполнителя с максимальным количеством песен
+    # Find artist with maximum number of songs
     max_artist = max(artist_counts.items(), key=lambda x: x[1])
     artist_name, track_count = max_artist
     
-    # Если доля песен главного исполнителя меньше порога - это сборник
+    # If main artist's song proportion is below threshold - it's a compilation
     is_compilation = (track_count / total_tracks) <= float(cfg.collection.compilation_coef)
     album_artist = "Various Artists" if is_compilation else artist_name
     

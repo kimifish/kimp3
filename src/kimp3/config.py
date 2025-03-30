@@ -82,9 +82,16 @@ def _init_logs():
 
 
 def _parse_args():
+    """Parse command line arguments.
+    
+    Returns:
+        Parsed arguments namespace and unknown arguments list
+    """
     log.info("Parsing args")
-    parser = argparse.ArgumentParser(description='Поиск, сортировка mp3 и обработка тэгов. '
-                                                 'Значения по-умолчанию читаются из ~/.config/kimp3/config.yaml')
+    parser = argparse.ArgumentParser(
+        description='Search, sort MP3 files and process tags. '
+        'Default values are read from ~/.config/kimp3/config.yaml'
+    )
     parser.add_argument(
         "-c",
         "--config",
@@ -92,20 +99,26 @@ def _parse_args():
         default=DEFAULT_CONFIG_FILE,
         help="Configuration file location.",
     )
-    parser.add_argument("-s",
-                        "--scan_dir",
-                        type=str,
-                        help="Каталог для поиска mp3-файлов")
+    parser.add_argument(
+        "-s",
+        "--scan_dir",
+        type=str,
+        help="Directory to search for MP3 files"
+    )
 
-    parser.add_argument("-d",
-                        "--decode",
-                        help="Перекодировать тэги из lat1→utf8 в cp1251→utf8. Значение по-умолчанию — False",
-                        action="store_true")
+    parser.add_argument(
+        "-d",
+        "--decode",
+        help="Recode tags from lat1→utf8 to cp1251→utf8. Default is False",
+        action="store_true"
+    )
 
-    parser.add_argument("-D",
-                        "--dry",
-                        help="Dry run",
-                        action="store_true")
+    parser.add_argument(
+        "-D",
+        "--dry",
+        help="Dry run",
+        action="store_true"
+    )
 
     args, unknown = parser.parse_known_args()
 
@@ -158,6 +171,12 @@ if cfg.tags.lastfm_api_key == '.env':
 
 if cfg.tags.lastfm_api_secret == '.env':
     cfg.update('tags.lastfm_api_secret', os.getenv('LASTFM_API_SECRET'))
+
+if cfg.tags.lastfm_password_hash == '.env':
+    cfg.update('tags.lastfm_password_hash', os.getenv('LASTFM_PASSWORD_HASH'))
+
+if cfg.tags.lastfm_username == '.env':
+    cfg.update('tags.lastfm_username', os.getenv('LASTFM_USERNAME'))
 
 if cfg.tags.discogs_token == '.env':
     cfg.update('tags.discogs_token', os.getenv('DISCOGS_TOKEN'))

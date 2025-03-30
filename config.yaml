@@ -90,10 +90,11 @@ tags:
   genius_token: .env
 
   # In order to perform a write operation you need to authenticate yourself
-  lastfm_username: "kimifish"
-  lastfm_password_hash: '3da005c0951fa144c26b14869de1ce91'
+  # It's not necessary for read operations
+  lastfm_username: .env
+  lastfm_password_hash: .env
 
-  # Autocorrection
+  # Autocorrection of artist, album and track names
   autocorrection: True
 
   # Move «The» from beginning to the end of artist name. The Beatles → Beatles, the
@@ -143,7 +144,7 @@ tags:
     'west coast hip hop', 'western swing', 'world music', 'zouk', 'zydeco',
     ]
 
-  # Tags below won't be added to id3 tag list.
+  # Tags below won't be added to id3 tag list and genres.
   banned_tags: 'song, hit, new, la la la, popular, increasingly popular,
     eurovision, gold, gay, albums i own, loved, awesome, good songs,
     vinyl, deep purple, seen live, alternative, niravana - nevermind, kurt cobain,
@@ -162,7 +163,9 @@ tags:
     - '.* before you die$'
     - '.*seixas$'
 
-  # Banned artists from tags.
+  # Banned artists from tags. 
+  # Some artists have inappropriate tags, although tags themselfs are good.
+  # It's Internet.
   banned_artists_from_tags:
     'rock': ['abba',]
     'japanese': ['ддт',]
@@ -175,7 +178,7 @@ tags:
   - ['latin', 'latin music']
   - ['house', 'house music']
 
-  # If tag matches regex pattern, first will be used.
+  # If tag matches regex pattern, first will be used. First value should be a string.
   similar_tags_patterns:
 
   # Decades
@@ -240,8 +243,7 @@ tags:
   - ['jazz', 'jazz music']
 
   # Other genres
-  - ['hip hop', 'hip\W{0,1}hop']
-  - ['rap', 'rap music']
+  - ['hip hop', 'hip\W{0,1}hop', 'rap', 'rap music']
   - ['classical', 'classical music']
   - ['soul', 'soul music']
   - ['reggae', 'reggae music']
@@ -264,7 +266,7 @@ tags:
   # Other Tags
   - ['indie', 'indie\W{0,1}rock']
   
-  # Replacements for Genius search. They are not used for tag processing.
+  # Replacements for Genius search. Not used for tag processing.
   # Genius names are not always the same as LastFM.
   genius_replacements:
   # ['lastfm_name', 'genius_name']

@@ -20,6 +20,7 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 class UsualFile:
+    """Base class for handling regular files."""
     def __init__(self, filepath: str | Path, song_dir=None):
         self._filepath = Path(filepath)
         self.path = self._filepath.parent
@@ -55,9 +56,8 @@ class UsualFile:
 
 
 class AudioFile(UsualFile):
-    """
-    Класс для работы с MP3-файлом, включая его теги и операции перемещения/копирования.
-    """
+    """Class for working with MP3 files, including tags and file operations."""
+    
     def __init__(self, filepath: str | Path, song_dir=None):
         super().__init__(filepath, song_dir)
         
@@ -66,15 +66,15 @@ class AudioFile(UsualFile):
         self.old_tags = AudioTags()
 
     def _read_tags(self) -> AudioTags:
-        """Читает теги из файла, используя mutagen."""
+        """Reads tags from file using mutagen."""
         try:
-            # Открываем файл как EasyID3 для основных тегов
+            # Open file as EasyID3 for basic tags
             easy_tags = EasyID3(self.filepath)
             
-            # Открываем тот же файл как ID3 для доступа к комментариям и обложке
+            # Open same file as ID3 for comments and cover
             id3 = ID3(self.filepath)
             
-            # Получаем обложку альбома
+            # Get album cover
             cover_data = None
             cover_mime = "image/jpeg"
             
@@ -85,14 +85,14 @@ class AudioFile(UsualFile):
                     cover_mime = cover.mime
                     break
             
-            # Создаем объект AudioTags из easy_tags
+            # Create AudioTags object from easy_tags
             tags = AudioTags.from_mutagen(easy_tags, id3)
             
-            # Добавляем обложку
+            # Add cover
             tags.album_cover = cover_data
             tags.album_cover_mime = cover_mime
 
-            # Читаем текст песни из USLT фрейма
+            # Read lyrics from USLT frame
             lyrics = None
             for key in id3.keys():
                 if key.startswith('USLT:'):
@@ -100,13 +100,13 @@ class AudioFile(UsualFile):
                     break
             tags.lyrics = lyrics
 
-            # Обработка компиляций
+            # Handle compilations
             if self.song_dir and getattr(self.song_dir, 'is_compilation', False):
                 if not tags.album_artist or tags.album_artist.lower() in cfg.bad_artists:
                     tags.album_artist = 'Various Artists'
                     tags.compilation = True
 
-            # Проверка и исправление пустых значений
+            # Check and fix empty values
             if not tags.album_artist and tags.artist:
                 tags.album_artist = tags.artist
 
@@ -117,10 +117,10 @@ class AudioFile(UsualFile):
             return AudioTags()
 
     def fetch_tags(self) -> dict[str, tuple[str, str]]:
-        """Проверяет и корректирует теги через Last.FM.
+        """Checks and corrects tags via Last.FM.
         
         Returns:
-            Словарь изменений в формате {поле: (старое_значение, новое_значение)}
+            Dictionary of changes in format {field: (old_value, new_value)}
         """
         changes = {}
         self.old_tags = AudioTags(
@@ -141,11 +141,11 @@ class AudioFile(UsualFile):
         )
         
         try:
-            # Обновляем теги через Last.FM
+            # Update tags via Last.FM
             if cfg.tags.fetch_tags:
                 self.tags = kimp3.tags.TaggedTrack(self.tags).get_audiotags()
             
-            # Обработка артикля 'The' в имени исполнителя
+            # Handle 'The' article in artist name
             for field in ['artist', 'album_artist']:
                 value = getattr(self.tags, field, '')
                 if value.lower().startswith('the '):
@@ -154,35 +154,33 @@ class AudioFile(UsualFile):
                     elif cfg.tags.the_the == 'move':
                         setattr(self.tags, field, value[4:] + ', the')
 
-            # Собираем изменения
+            # Collect changes
             for field in AudioTags.__annotations__:
                 old_value = getattr(self.old_tags, field)
                 new_value = getattr(self.tags, field)
                 
                 if old_value != new_value:
                     changes[field] = (old_value or '<empty>', new_value or '<empty>')
-                    # log.info(f"Tag '{field}' corrected from '{old_value}' to '{new_value}' "
-                            # f"for {self.filepath.name}")
+
         except Exception as e:
-        # except NotImplementedError as e:
             log.error(f"Error fetching tags for {self.filepath}: {e}")
         
         return changes
 
     def write_tags(self) -> None:
-        """Записывает теги в файл."""
+        """Writes tags to file."""
         try:
-            # Открываем файл как EasyID3 для основных тегов
+            # Open file as EasyID3 for basic tags
             easy_tags = EasyID3(self.filepath)
             
-            # Открываем тот же файл как ID3 для доступа к комментариям
+            # Open same file as ID3 for comments
             id3 = ID3(self.filepath)
             
-            # Определяем количество цифр для номеров треков и дисков
+            # Determine width for track and disc numbers
             track_width = len(str(self.tags.total_tracks)) if self.tags.total_tracks else 2
             disc_width = len(str(self.tags.total_discs)) if self.tags.total_discs else 1
             
-            # Форматируем номера с ведущими нулями и общим количеством
+            # Format numbers with leading zeros and totals
             track_number = None
             if self.tags.track_number:
                 track_number = str(self.tags.track_number).zfill(track_width)
@@ -195,10 +193,10 @@ class AudioFile(UsualFile):
                 if self.tags.total_discs:
                     disc_number = f"{disc_number}/{self.tags.total_discs}"
             
-            # Форматируем год
+            # Format year
             year = str(self.tags.year) if self.tags.year else None
 
-            # Словарь тегов для записи
+            # Tag mapping for writing
             tag_mapping = {
                 'title': self.tags.title,
                 'artist': self.tags.artist,
@@ -210,10 +208,10 @@ class AudioFile(UsualFile):
                 'tracknumber': track_number,
             }
 
-            # Очищаем существующие теги
+            # Clear existing tags
             easy_tags.delete()
             
-            # Записываем новые теги через EasyID3
+            # Write new tags via EasyID3
             for key, value in tag_mapping.items():
                 if value:
                     try:
@@ -221,18 +219,18 @@ class AudioFile(UsualFile):
                     except Exception as e:
                         log.error(f"Failed to write tag {key}: {e}")
 
-            # Сохраняем основные теги
+            # Save basic tags
             easy_tags.save()
 
-            # Перезагружаем ID3 теги после сохранения EasyID3
+            # Reload ID3 tags after saving EasyID3
             id3 = ID3(self.filepath)
 
-            # Удаляем существующие комментарии
+            # Remove existing comments
             for key in list(id3.keys()):
                 if key.startswith('COMM:'):
                     del id3[key]
 
-            # Добавляем новые комментарии
+            # Add new comments
             if self.tags.comment:
                 id3.add(COMM(encoding=3, lang='eng', desc='', text=self.tags.comment))
             
@@ -273,7 +271,7 @@ class AudioFile(UsualFile):
             
             log.debug(f"Tags successfully written to {self.filepath}")
             
-            # Проверяем, что теги действительно записались
+            # Verify tags were written correctly
             verification_tags = EasyID3(self.filepath)
             for key, value in tag_mapping.items():
                 if value and (key not in verification_tags or verification_tags[key][0] != value):
@@ -283,7 +281,7 @@ class AudioFile(UsualFile):
             log.error(f"Error writing tags to {self.filepath}: {e}")
 
     def calculate_new_paths_from_tags(self) -> Optional[Path]:
-        """Вычисляет новый путь для файла на основе тегов и конфигурации."""
+        """Calculates new path for file based on tags and configuration."""
         try:
             base_dir = Path(cfg.collection.directory)
             
@@ -294,12 +292,12 @@ class AudioFile(UsualFile):
             else:
                 pattern = cfg.paths.patterns.album
 
-            # Добавляем номер диска только если их больше одного
+            # Add disc number only if there's more than one
             if not self.tags.total_discs or int(self.tags.total_discs) <= 1:
                 pattern = pattern.replace(' (CD%disc_num)', '')
                 genre_pattern = genre_pattern.replace(' (CD%disc_num)', '')
 
-            # Словарь для сопоставления переменных паттерна с полями AudioTags
+            # Tag mapping for pattern variables
             tag_mapping = {
                 'song_title': sanitize_path_component(str(self.tags.title)),
                 'song_artist': sanitize_path_component(str(self.tags.artist)),
@@ -312,16 +310,16 @@ class AudioFile(UsualFile):
                 'year': str(self.tags.year) if self.tags.year else 'XXXX'
             }
 
-            # Замена шаблонных переменных реальными значениями
+            # Replace pattern variables with actual values
             path = pattern
             for var, value in tag_mapping.items():
                 path = path.replace(f'%{var}', value or "Unknown")
 
-            # Разделяем путь и создаем Path объект
+            # Split path and create Path object
             path_parts = [p for p in path.split('/') if p]
             new_path = base_dir.joinpath(*path_parts)
             
-            # Создаем пути для жанров, используя паттерн из конфига
+            # Create genre paths using pattern from config
             if self.tags.genre:
                 for genre in str(self.tags.genre).split(','):
                     genre_path = genre_pattern
@@ -340,7 +338,7 @@ class AudioFile(UsualFile):
             return None
 
     def copy_to(self) -> None:
-        """Подготавливает файл к копированию."""
+        """Prepares file for copying."""
         self._calculate_new_paths()
         file_operations.files_to_copy.append(self)
         
@@ -348,7 +346,7 @@ class AudioFile(UsualFile):
             file_operations.files_to_create_link.append([str(self.new_filepath), str(genre_path)])
 
     def move_to(self) -> None:
-        """Подготавливает файл к перемещению."""
+        """Prepares file for moving."""
         self._calculate_new_paths()
         file_operations.files_to_move.append(self)
         
@@ -356,7 +354,7 @@ class AudioFile(UsualFile):
             file_operations.files_to_create_link.append([str(self.new_filepath), str(genre_path)])
 
     def print_changes(self) -> None:
-        """Выводит изменения в тегах и пути файла."""
+        """Prints tag and path changes."""
         from rich import print
         from rich.panel import Panel
         from rich.console import Console
@@ -458,7 +456,7 @@ class AudioFile(UsualFile):
             f"Album title: {self.tags.album}\n"
             f"Compilation: {self.tags.compilation}\n"
             f"Year: {self.tags.year}\n"
-            f"Track: {self.tags.track_number}/{self.tags.total_tracks}"
+            f"Track: {self.tags.track_number}/{self.tags.total_tracks}\n"
             f"Genre: {self.tags.genre}\n"
             f"Tags: {self.tags.lastfm_tags}\n"
             f"Rating: {self.tags.rating}\n"

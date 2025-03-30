@@ -84,25 +84,31 @@ class TaggedTrack():
         return pretty_repr(track_info)
 
     def _correct_artist_name(self, artist: pylast.Artist) -> Optional[str]:
-        """Получает корректное имя исполнителя из Last.FM или кэша."""
+        """Get corrected artist name from Last.FM or cache.
         
+        Args:
+            artist: Last.FM artist object
+            
+        Returns:
+            Corrected artist name or None if artist doesn't exist
+        """
         if not artist or not artist.name:
             log.warning(f'Artist doesn\'t exist - {artist}')
             return None
 
-        # Проверяем кэш
+        # Check cache
         if artist.name in _artist_corrections:
             return _artist_corrections[artist.name]
             
         try:
             corrected: str = artist.get_correction() or artist.name
             
-            # Сохраняем в кэш
+            # Save to cache
             _artist_corrections[artist.name] = corrected
             artist.name = corrected
         except pylast.WSError:
             log.warning(f'Last.FM: Artist not found - {self.artist.name}')
-            # Кэшируем отсутствие исправлений
+            # Cache the absence of corrections
             _artist_corrections[artist.name] = artist.name
         finally:
             return artist.name
@@ -139,10 +145,18 @@ class TaggedTrack():
             return album.title
 
     def _correct_track_title(self, track: pylast.Track):
-        """Получает корректное название трека из Last.FM."""
+        """Get corrected track title from Last.FM.
+        
+        Args:
+            track: Last.FM track object
+            
+        Returns:
+            Corrected track title or original title if not found
+        """
         try:
             title = track.get_correction() or track.title
-            # Если исправление совпадает с исполнителем, то это не исправление
+            # If correction matches artist name and differs from current title,
+            # keep the current title
             if title == self.artist.name and title != self.tags.title:
                 title = self.tags.title
         except pylast.WSError:
@@ -152,6 +166,7 @@ class TaggedTrack():
             return title
 
     def update_album_data(self):
+        """Update album metadata including artist, title and track numbers."""
         self.album_artist.name = self._correct_artist_name(self.album_artist)
         self.album.title = self._correct_album_name(self.album)
 
@@ -165,6 +180,7 @@ class TaggedTrack():
             pass
     
     def update_tags(self):
+        """Update tags from Last.FM including genre and other metadata."""
         artist_tags = _get_tags(self.artist, min_weight=50)
         album_tags = _get_tags(self.album, min_weight=10)
         track_tags = _get_tags(self.track, min_weight=5)

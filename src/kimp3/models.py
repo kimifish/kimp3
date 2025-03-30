@@ -1,7 +1,13 @@
+"""
+Data models for audio metadata and file operations.
+
+This module contains the core data structures used throughout the application
+for representing audio metadata, file operations, and configuration options.
+"""
+
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from token import OP
 from typing import Optional
 import io
 
@@ -10,29 +16,23 @@ from mutagen.id3 import ID3
 
 
 class FileOperation(Enum):
-    """Перечисление возможных операций с файлами.
-    
-    Attributes:
-        COPY: Копирование файла
-        MOVE: Перемещение файла
-        NONE: Операция не выбрана/не требуется
-    """
+    """Enum for file operations."""
     COPY = "copy"
     MOVE = "move"
     NONE = "none"
 
     @classmethod
     def from_string(cls, value: str) -> 'FileOperation':
-        """Создает FileOperation из строки.
+        """Creates FileOperation from string.
         
         Args:
-            value: Строковое значение операции ('copy', 'move' или 'none')
+            value: String value of operation ('copy', 'move' or 'none')
             
         Returns:
-            Соответствующее значение FileOperation
+            Corresponding FileOperation value
             
         Raises:
-            ValueError: Если передано неверное значение
+            ValueError: If invalid value provided
         """
         try:
             return cls(value.lower())
@@ -45,7 +45,7 @@ class FileOperation(Enum):
 
 @dataclass
 class AudioTags:
-    """Модель для хранения тегов аудио файла."""
+    """Model for storing audio file tags."""
     title: str = ""
     artist: str = ""
     album: str = ""
@@ -62,11 +62,11 @@ class AudioTags:
     rating: str = ""
     album_cover: Optional[bytes] = None
     album_cover_mime: str = "image/jpeg"
-    lyrics: Optional[str] = None  # Add lyrics field
+    lyrics: Optional[str] = None
 
     @classmethod
     def from_mutagen(cls, easy_tags: EasyID3, id3: ID3) -> 'AudioTags':
-        """Создает объект AudioTags из EasyID3 и ID3."""
+        """Creates AudioTags object from EasyID3 and ID3."""
         def get_tag_value(key: str) -> str:
             try:
                 return easy_tags.get(key, [''])[0]
@@ -74,7 +74,7 @@ class AudioTags:
                 return ''
 
         def get_comment(desc: str) -> str:
-            """Извлекает комментарий с определенным описанием."""
+            """Extracts comment with specific description."""
             for key, frame in id3.items():
                 if key.startswith('COMM:') and frame.desc == desc:
                     return frame.text[0][len(desc + ': '):]
@@ -102,7 +102,7 @@ class AudioTags:
 
     @staticmethod
     def _parse_track_number(value: str) -> tuple[Optional[int], Optional[int]]:
-        """Парсит строку с номером трека/диска в формате 'number/total'."""
+        """Parses track/disc number string in format 'number/total'."""
         if not value:
             return None, None
         parts = value.split('/')
@@ -115,11 +115,11 @@ class AudioTags:
 
     @staticmethod
     def _parse_year(value: str) -> Optional[int]:
-        """Извлекает год из строки даты."""
+        """Extracts year from date string."""
         if not value:
             return None
         try:
-            # Берем первые 4 символа как год
+            # Take first 4 characters as year
             return int(value[:4])
         except (ValueError, IndexError):
             return None
@@ -128,7 +128,7 @@ class AudioTags:
 
 @dataclass
 class AudioFile:
-    """Модель для хранения информации об аудио файле."""
+    """Model for storing audio file information."""
     path: Path
     tags: AudioTags
     new_path: Optional[Path] = None

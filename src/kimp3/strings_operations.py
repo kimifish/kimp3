@@ -10,13 +10,13 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 def sanitize_path_component(value: str) -> str:
-    """Очищает строку от недопустимых в пути символов.
+    """Sanitizes string by removing characters invalid in file paths.
     
     Args:
-        value: Исходная строка
+        value: Input string
         
     Returns:
-        Очищенная строка, безопасная для использования в пути
+        Sanitized string safe for use in file paths
     """
     # Заменяем слеши на дефисы
     value = value.replace('/', '-').replace('\\', '-')
