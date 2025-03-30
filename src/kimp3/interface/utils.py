@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import sys
+from kimp3.config import cfg
 
 if sys.platform[:3] == 'win':
     import msvcrt
@@ -31,17 +32,24 @@ elif sys.platform[:3] == 'lin':
         return c
 
 
-def yes_or_no(question):
+def yes_or_no(question) -> tuple[bool, bool]:
     print(question, end=":")
     while True:
         k = getkey().decode()
         if k.lower() == 'y':
             print('y')
-            return True
+            return True, False
+        if k.lower() == 'a':
+            print('a')
+            return True, True
         if k.lower() == 'n':
             print('n')
-            return False
+            return False, False
 
+def sep_with_header(header: str):
+    length = cfg.runtime.console.width
+    header = header.center(length, "─")
+    return f"\n{header}\n"
 
 if __name__ == "__main__":
     yes_or_no("Ok?")

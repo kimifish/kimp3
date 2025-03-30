@@ -2,13 +2,18 @@
 
 # Print summary of changes and ask question before changing
 interactive: True
+dry_run: False
 
 scan:
   # List of directories to scan (comma-separated)
   # dir_list = '/media/kimifish/MediaStore/Музыка, /home/kimifish/Downloads'
   # dir_list: '/home/pi/Downloads'
   # dir_list: '/home/kimifish/kimiside@gmail.com/Music/Песенник'
-  dir_list: '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
+  # dir_list: '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
+  # dir_list: '/home/kimifish/Downloads/ППВК'
+  dir_list: '/home/kimifish/Downloads/Spasibo'
+  # dir_list: ['/home/kimifish/Downloads/VHS Glitch/albums/2016 - Demoniac',
+  #            '/junk/kimiside@gmail.com/Music/Песенник']
 
   # Directory names to skip while parsing:
   skip_dirs: ['.unwanted', '.AppleDouble']
@@ -68,24 +73,32 @@ paths:
   # Artist tags, that are considered to be non-valid. Lowercase
   bad_artists: ['unknown artist', 'unknown', 'неизвестный исполнитель', 'неизвестный артист']
 
-  # Move «The» from beginning to the end of artist name. The Beatles → Beatles, the
-  # Or just remove it. Or leave. 'leave', 'move' or 'remove'
-  the_the: 'remove'
+  cache_dir: '/home/kimifish/.cache/kimp3'
 
-lastfm:
+tags:
+
+  # Fetch tags from Last.FM and try to correct bad and unused tags:
+  fetch_tags: True
+  fetch_album_cover: True
+  fetch_lyrics: True
 
   # You have to have your own unique two values for API_KEY and API_SECRET
   # Obtain yours from http://www.last.fm/api/account for Last.fm
-  api_key: .env
-  api_secret: .env
+  lastfm_api_key: .env
+  lastfm_api_secret: .env
   discogs_token: .env
+  genius_token: .env
 
   # In order to perform a write operation you need to authenticate yourself
-  username: "kimifish"
-  password_hash: '3da005c0951fa144c26b14869de1ce91'
+  lastfm_username: "kimifish"
+  lastfm_password_hash: '3da005c0951fa144c26b14869de1ce91'
 
   # Autocorrection
   autocorrection: True
+
+  # Move «The» from beginning to the end of artist name. The Beatles → Beatles, the
+  # Or just remove it. Or leave. 'leave', 'move' or 'remove'
+  the_the: 'remove'
 
   # Allowed genre tags
   genres: ['acoustic', 'acoustic rock', 'afrobeat', 'afropop', 'alternative', 
@@ -134,67 +147,44 @@ lastfm:
   banned_tags: 'song, hit, new, la la la, popular, increasingly popular,
     eurovision, gold, gay, albums i own, loved, awesome, good songs,
     vinyl, deep purple, seen live, alternative, niravana - nevermind, kurt cobain,
-    adriano, top100albumsbyme, ddt,
+    adriano, top100albumsbyme, ddt, zemfira, love it, interesting
     '
   banned_tags_patterns:
-    - '\d+'
-    - '[the |]best'
-    - 'best of.*'
-    - 'discovered in.*'
+    - '^\d+$'
+    - '^\d+ stars$'
+    - '^[the |]best$'
+    - '^best of .*'
+    - '^discovered in.*'
     - 'top [\d+|artists|cd]'
-    - '\d+ of \d+ .*'
+    - '^\d+ of \d+ .*'
     - '.*streamable.*'
-    - 'favou?rite.*'
-    - '.* before you die'
-    - '.*seixas'
+    - '^favou?rite.*'
+    - '.* before you die$'
+    - '.*seixas$'
 
   # Banned artists from tags.
   banned_artists_from_tags:
     'rock': ['abba',]
     'japanese': ['ддт',]
+    'metal': ['nirvana',]
+    'punk': ['nirvana',]
+    'punk rock': ['nirvana',]
 
   # Merge tags from every list below to the first tag only.
   similar_tags:
   - ['latin', 'latin music']
   - ['house', 'house music']
-  # Genres and Subgenres
 
   # If tag matches regex pattern, first will be used.
   similar_tags_patterns:
 
-    # Decades
+  # Decades
   - ['50s', "(?:50|50\\'s|fifties|1950\\'s?)"]
   - ['60s', "(?:60|60\\'s|sixties|1960\\'s?)"]
   - ['70s', "(?:70|70\\'s|seventies|1970\\'s?)"]
   - ['80s', "(?:80|80\\'s|eighties|1980\\'s?)"]
   - ['90s', "(?:90|90\\'s|nineties|1990\\'s?)"]
   - ['00s', "(?:00\\'s|two thousands|2000s|2000-2009|aughts|noughties)"]
-  - ['dark wave', 'dark[-\s/]?wave']
-  - ['dark synth', 'dark[-\s/]?synth']
-  - ['punk rock', 'punk[-\s/]?rock']
-  - ['female vocalist', 'female voc.*']
-
-  # Genres
-  - ['rock', 'rock\smusic']
-  - ['alternative rock', '(?:alt\srock|alternative-rock)']
-  - ['punk rock', 'punk[-\s/]?rock']
-  - ['pop rock', '(?:pop[-\s/]?rock|rockpop|poprock)']
-  - ['synth pop', '(?:synthpop|synth-pop|synth[-\s]?dance)']
-  - ['electronic', 'electronica']
-  - ['techno', 'tehno']
-  - ['smooth jazz', 'smooth-jazz']
-  - ['classical', 'classical music']
-  - ['rap', 'rap music']
-  - ['soul', 'soul music']
-  - ['reggae', 'reggae music']
-  - ['latin', 'latin music']
-  - ['house', 'house music']
-  - ['trance', 'trance music']
-  - ['dubstep', 'dubstep music']
-  - ['jazz', 'jazz music']
-  - ['blues', 'blues music']
-  - ['pop', 'pop music']
-  - ['punk', 'punk music']
 
   # Descriptive
   - ['male vocalist', 'male\s(?:vocals|vocalists?)']
@@ -212,27 +202,52 @@ lastfm:
   - ['russian', "(?:russia|russian artists?)"]
 
   # Electronic/Dance
-  - ['synthwave', "(?:synth[-\\s]?wave|synth wave)"]
-  - ['space synth', "(?:space-synth|spacesynth|spacewave|space wave)"]
-  - ['dance', "(?:dance pop|dance-pop)"]
-  - ['disco', "(?:euro disco|euro-disco)"]
-  - ['electroswing', "(?:electro swing|electro-swing)"]
-  - ['nu jazz', "nu-jazz"]
+  - ['house', 'house music']
+  - ['trance', 'trance music']
+  - ['dubstep', 'dubstep music']
+  - ['synth pop', '(?:synth\W{0,1}pop|synth\W{0,1}dance|synth)']
+  - ['space disco', 'space\W{0,1}disco']
+  - ['electronic', 'electronica']
+  - ['techno', 'tehno']
+  - ['dark wave', 'dark\W{0,1}wave']
+  - ['dark synth', 'dark\W{0,1}synth']
+  - ['synthwave', 'synth\W{0,1}wave']
+  - ['space synth', '(?:space\W{0,1}synth|space\W{0,1}wave)']
+  - ['dance', 'dance\W{0,1}pop']
+  - ['disco', 'euro\W{0,1}disco']
+  - ['electroswing', 'electro\W{0,1}swing']
 
   # Rock/Metal variants
-  - ['folk rock', 'folk[-\s]?rock']
-  - ['hard rock', 'hard[-\s]?rock']
-  - ['progressive rock', '(?:prog\srock|progressive-rock)']
-  - ['garage rock', 'garage[-\s]?rock']
-  - ['metal', '(?:heavy\smetal|metal\smusic)']
+  - ['folk rock', 'folk\W{0,1}rock']
+  - ['hard rock', 'hard\W{0,1}rock']
+  - ['progressive rock', '(?:prog\W{0,1}rock|progressive\W{0,1}rock)']
+  - ['garage rock', 'garage\W{0,1}rock']
+  - ['metal', 'heavy\W{0,1}metal', 'metal\smusic']
+  - ['rock', 'rock\W{0,1}music']
+  - ['alternative rock', 'alt\W{0,1}rock', 'alternative\W{0,1}rock']
+  - ['punk rock', 'punk\W{0,1}rock']
+  - ['pop rock', 'pop\W{0,1}rock', 'rockpop']
 
   # Pop variants
-  - ['euro pop', '(?:europop|euro-pop)']
-  - ['k-pop', 'kpop']
-  - ['j-pop', 'jpop']
+  - ['pop', 'pop music']
+  - ['euro pop', 'euro\W{0,1}pop']
+  - ['k-pop', 'k\W{0,1}pop']
+  - ['j-pop', 'j\W{0,1}pop']
+
+  # Jazz
+  - ['nu jazz', 'nu\W{0,1}jazz']
+  - ['smooth jazz', 'smooth\W{0,1}jazz']
+  - ['jazz', 'jazz music']
 
   # Other genres
-  - ['hip hop', '(?:hip-hop|hiphop)']
+  - ['hip hop', 'hip\W{0,1}hop']
+  - ['rap', 'rap music']
+  - ['classical', 'classical music']
+  - ['soul', 'soul music']
+  - ['reggae', 'reggae music']
+  - ['latin', 'latin music']
+  - ['blues', 'blues music']
+  - ['punk', 'punk music']
   - ['r&b', '(?:r\sand\sb|rhythm\sand\sblues|rnb)']
   - ['classical', 'classical\smusic']
   - ['country', '(?:country\smusic|country\sand\swestern)']
@@ -247,18 +262,16 @@ lastfm:
   - ['acoustic', '(?:unplugged|acoustic\smusic)']
 
   # Other Tags
-  - ['indie', '(?:indie[-\s]?rock|indie-rock)']
+  - ['indie', 'indie\W{0,1}rock']
+  
+  # Replacements for Genius search. They are not used for tag processing.
+  # Genius names are not always the same as LastFM.
+  genius_replacements:
+  # ['lastfm_name', 'genius_name']
+  - ['zемфира', 'земфира']
 
-tags:
-
-  # Library reading tags (eyed3 or taglib):
-  tag_reader: "eyed3"
-
-  # Check and try to correct bad and unused tags:
-  check_tags: True
 
 logging:
-  # level: "INFO"
   level: "DEBUG"
   loggers:
     suppress:
@@ -266,4 +279,5 @@ logging:
       - "httpcore"
       - "mutagen"
       - "pylast"
+      - "urllib3.connectionpool"
     suppress_level: "WARNING"

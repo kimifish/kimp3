@@ -6,27 +6,49 @@ import logging
 import os
 import sys
 from datetime import datetime
+from typing import List
 from rich.pretty import pretty_repr
-import file_operations
-from config import cfg, APP_NAME, HOME_DIR
-from songdir import SongDir
-from lastfm import init_lastfm
+import kimp3.file_operations as file_operations
+from kimp3.config import cfg, APP_NAME, HOME_DIR
+from kimp3.songdir import SongDir
+from kimp3.tags import init_lastfm, get_cache_stats, clear_cache
+from kimp3.interface.utils import sep_with_header
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 log.info('•' + str(datetime.today()) + ' Starting…')
 
 
 class ScanDir:
+    """Directory scanner that recursively finds and processes audio files.
+    
+    This class handles the recursive scanning of directories for audio files,
+    organizing them into SongDir objects, and providing methods for processing
+    and managing the found files.
+    
+    Attributes:
+        path: Base directory path to scan
+        directories_list: List of SongDir objects containing found audio files
+    """
+
     def __init__(self, scanpath: str):
+        """Initialize scanner with a base directory path.
+        
+        Args:
+            scanpath: Directory path to start scanning from
+        """
         self.path = scanpath
-        self.directories_list = []
+        self.directories_list: List[SongDir] = []
         self.scan_directory(scanpath)
 
     def scan_directory(self, scanpath):
         """Recursively scan directory for audio files and add them to directories_list.
+        
+        Walks through the directory tree, identifying audio files and creating
+        SongDir objects for directories containing them. Skips directories and files
+        specified in configuration.
 
         Args:
-            scanpath (str): Path to scan for audio files
+            scanpath: Path to scan for audio files
         """
         log.debug(f"Scanning {scanpath}…")
 
@@ -58,25 +80,43 @@ class ScanDir:
             log.error(f"Error scanning {scanpath}: {e}")
 
     def check_tags(self):
+        """Check tags in all found directories.
+        
+        Returns:
+            dict: Mapping of directory paths to their tag check results
+        """
         changes = {}
         for directory in self.directories_list:
             changes[str(directory.path)] = directory.check_tags()
         return changes
-
-    def copy_all_dirs(self):
-        for i in self.directories_list:
-            i.copy_all_songs()
-
-    def move_all_dirs(self):
-        for i in self.directories_list:
-            i.move_all_songs()
+    
+    def process_by_one(self):
+        """Process each directory one by one.
+        
+        For each directory:
+        1. Fetches tags if configured
+        2. Processes files (move/copy)
+        3. Executes pending file operations
+        4. Writes updated tags
+        """
+        for d in self.directories_list:
+            print(sep_with_header(f"Processing {str(d.path)}"))
+            if cfg.tags.fetch_tags:
+                changes = d.fetch_tags()
+            d.process_files(cfg.scan.move_or_copy)
+            file_operations.execute()
+            d.write_tags()
 
     @property
     def stats(self):
-        """Return scanning statistics.
+        """Get scanning statistics.
         
         Returns:
-            dict: Statistics about scanned directories and files
+            dict: Statistics including:
+                - total_directories: Number of directories with audio files
+                - total_files: Total number of audio files found
+                - albums: Number of album directories
+                - compilations: Number of compilation directories
         """
         total_dirs = len(self.directories_list)
         total_files = sum(len(d.audio_files) for d in self.directories_list)
@@ -92,8 +132,19 @@ class ScanDir:
 
 
 def main():
+    """Main program entry point.
+    
+    Performs the following steps:
+    1. Scans configured directories for audio files
+    2. Initializes LastFM if tag fetching is enabled
+    3. Processes each directory (tag fetching, file operations)
+    4. Cleans up broken symlinks
+    5. Optionally deletes empty directories
+    
+    Returns:
+        int: Exit code (0 for success)
+    """
     dirs_to_scan = []
-    cfg.print_config()
     for directory in cfg.scan.dir_list:
         if os.path.isdir(directory):
             if os.access(directory, os.R_OK):
@@ -107,12 +158,15 @@ def main():
         log.debug("Scanning stats:")
         log.debug(f"{d.path}:\n" + pretty_repr(d.stats))
 
-    if cfg.tags.check_tags:
+    if cfg.tags.fetch_tags:
         init_lastfm()
-        for directory in dirs_to_scan:
-            changes = directory.check_tags()
-            log.debug("Tag changes:" + pretty_repr(changes))
 
+    for directory in dirs_to_scan:
+        directory.process_by_one()
+
+    file_operations.clean_broken_symlinks()
+    log.debug(f"Cache stats: {pretty_repr(get_cache_stats())}")
+    clear_cache()
     return
 
     file_operations.execute()

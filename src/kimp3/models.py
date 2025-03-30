@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from token import OP
 from typing import Optional
+import io
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
@@ -53,12 +54,15 @@ class AudioTags:
     total_tracks: Optional[int] = None
     disc_number: Optional[int] = None
     total_discs: Optional[int] = None
-    year: str = ""
+    year: Optional[int] = None
     genre: str = ""
+    lastfm_tags: str = ""
     comment: str = ""
     compilation: bool = False
-    lastfm_tags: str = ""
     rating: str = ""
+    album_cover: Optional[bytes] = None
+    album_cover_mime: str = "image/jpeg"
+    lyrics: Optional[str] = None  # Add lyrics field
 
     @classmethod
     def from_mutagen(cls, easy_tags: EasyID3, id3: ID3) -> 'AudioTags':
@@ -73,7 +77,7 @@ class AudioTags:
             """Извлекает комментарий с определенным описанием."""
             for key, frame in id3.items():
                 if key.startswith('COMM:') and frame.desc == desc:
-                    return frame.text
+                    return frame.text[0][len(desc + ': '):]
             return ''
 
         track_info = cls._parse_track_number(get_tag_value('tracknumber'))

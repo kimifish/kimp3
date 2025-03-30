@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from kimiconfig import Config
 import re
 from typing import List, Pattern
+
+from kimp3.models import FileOperation
 cfg = Config(use_dataclasses=True)
 install_rich_traceback(show_locals=True)
 
@@ -118,9 +120,9 @@ def _compile_patterns():
     log.debug("Compiling regex patterns")
     
     # Compile banned_tags_patterns
-    if hasattr(cfg.lastfm, 'banned_tags_patterns'):
+    if hasattr(cfg.tags, 'banned_tags_patterns'):
         patterns: List[Pattern] = []
-        for pattern in cfg.lastfm.banned_tags_patterns:
+        for pattern in cfg.tags.banned_tags_patterns:
             try:
                 patterns.append(re.compile(pattern))
             except re.error as e:
@@ -128,9 +130,9 @@ def _compile_patterns():
         cfg.update('lastfm.banned_tags_patterns', patterns)
     
     # Compile similar_tags_patterns
-    if hasattr(cfg.lastfm, 'similar_tags_patterns'):
+    if hasattr(cfg.tags, 'similar_tags_patterns'):
         compiled_patterns_lists = []
-        for pattern_list in cfg.lastfm.similar_tags_patterns:
+        for pattern_list in cfg.tags.similar_tags_patterns:
             compiled_patterns = [pattern_list[0]] 
             for pattern in pattern_list[1:]:
                 try:
@@ -145,14 +147,28 @@ args, unknown = _parse_args()
 cfg.load_files([args.config_file])
 cfg.load_args(unknown)
 
-if cfg.lastfm.api_key == '.env':
-    cfg.update('lastfm.api_key', os.getenv('LASTFM_API_KEY'))
-if cfg.lastfm.api_secret == '.env':
-    cfg.update('lastfm.api_secret', os.getenv('LASTFM_API_SECRET'))
-if cfg.lastfm.discogs_token == '.env':
-    cfg.update('lastfm.discogs_token', os.getenv('DISCOGS_TOKEN'))
+try:
+    cfg.update('scan.move_or_copy', FileOperation(cfg.scan.move_or_copy))
+except ValueError as e:
+    log.error(f"Invalid configuration entry: scan.move_or_copy = {cfg.scan.move_or_copy}. Set to default 'copy'")
+    cfg.update('scan.move_or_copy', FileOperation.COPY)
+
+if cfg.tags.lastfm_api_key == '.env':
+    cfg.update('tags.lastfm_api_key', os.getenv('LASTFM_API_KEY'))
+
+if cfg.tags.lastfm_api_secret == '.env':
+    cfg.update('tags.lastfm_api_secret', os.getenv('LASTFM_API_SECRET'))
+
+if cfg.tags.discogs_token == '.env':
+    cfg.update('tags.discogs_token', os.getenv('DISCOGS_TOKEN'))
+
+if cfg.tags.genius_token == '.env':
+    cfg.update('tags.genius_token', os.getenv('GENIUS_TOKEN'))
+
 if not isinstance(cfg.scan.dir_list, list):
     cfg.update('scan.dir_list', [cfg.scan.dir_list])
+
+cfg.update('runtime.console', console)
 
 _compile_patterns()
 _init_logs()

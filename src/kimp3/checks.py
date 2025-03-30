@@ -4,7 +4,7 @@
 
 import logging
 
-from config import cfg, APP_NAME
+from kimp3.config import cfg, APP_NAME
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 

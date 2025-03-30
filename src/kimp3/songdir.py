@@ -3,14 +3,14 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
-import file_operations
-from song import AudioFile, UsualFile
+import kimp3.file_operations as file_operations
+from kimp3.song import AudioFile, UsualFile
 from pathlib import Path
 from rich.pretty import pretty_repr
 from typing import List, Set, Optional, Dict
-from config import cfg, APP_NAME
-from checks import test_is_album, test_is_compilation
-from models import FileOperation
+from kimp3.config import cfg, APP_NAME
+from kimp3.checks import test_is_album, test_is_compilation
+from kimp3.models import FileOperation
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
@@ -100,7 +100,7 @@ class SongDir:
         self.track_count = max(max_track_num, len(self.audio_files))
         log.debug(f"Track count set to {self.track_count}")
 
-    def process_audio_files(self, operation: FileOperation) -> None:
+    def _process_audio_files(self, operation: FileOperation) -> None:
         """Process audio files according to specified operation.
 
         Args:
@@ -110,11 +110,14 @@ class SongDir:
             return
 
         for audio_file in self.audio_files:
-            audio_file.new_path = self._calculate_new_path(audio_file)
+            audio_file.calculate_new_paths_from_tags()
             if operation == FileOperation.COPY:
-                audio_file.copy_to()
-            else:
-                audio_file.move_to()
+                file_operations.files_to_copy.append(audio_file)
+            elif operation == FileOperation.MOVE:
+                file_operations.files_to_move.append(audio_file)
+        
+            for genre_path in audio_file.genre_paths:
+                file_operations.files_to_create_link.append([str(audio_file.new_filepath), str(genre_path)])
 
     def _process_common_files(self, operation: FileOperation) -> None:
         """Process common album files like artwork.
@@ -125,11 +128,11 @@ class SongDir:
         if not self.common_files or not self.audio_files:
             return
             
-        # Get target directory from first audio file that has new_path
+        # Get target directory from first audio file that has new_filepath
         target_dir = None
         for audio_file in self.audio_files:
-            if hasattr(audio_file, 'new_path') and audio_file.new_path:
-                target_dir = audio_file.new_path.parent
+            if hasattr(audio_file, 'new_filepath') and audio_file.new_filepath:
+                target_dir = audio_file.new_filepath.parent
                 break
                 
         if not target_dir:
@@ -137,15 +140,12 @@ class SongDir:
             return
         
         for common_file in self.common_files:
-            usual_file = UsualFile(str(common_file))
-            usual_file.new_path = str(target_dir)
-            usual_file.new_name = common_file.name
-            usual_file.new_filepath = str(target_dir / common_file.name)
+            common_file.new_filepath = target_dir / common_file.name
             
             if operation == FileOperation.COPY:
-                file_operations.files_to_copy.append(usual_file)
-            else:
-                file_operations.files_to_move.append(usual_file)
+                file_operations.files_to_copy.append(common_file)
+            elif operation == FileOperation.MOVE:
+                file_operations.files_to_move.append(common_file)
 
     def process_files(self, operation: FileOperation) -> None:
         """Process all files in directory.
@@ -154,44 +154,16 @@ class SongDir:
             operation: FileOperation enum value (COPY/MOVE)
         """
         # First process audio files to calculate new paths
-        self.process_audio_files(operation)
+        self._process_audio_files(operation)
         # Then process common files using the calculated paths
         self._process_common_files(operation)
 
-    def _calculate_new_path(self, audio_file: AudioFile) -> Path:
-        """Calculate new path for audio file based on tags and configuration.
-        
-        Args:
-            audio_file: AudioFile object
-            
-        Returns:
-            New path for the file
-        """
-        base_dir = Path(cfg.collection.music_dir)
-        
-        if self.is_compilation:
-            pattern = cfg.collection.compilation_pattern
-        else:
-            pattern = cfg.collection.album_pattern
-            
-        # Replace template variables with actual values
-        path_parts = []
-        for part in pattern.split('/'):
-            if part.startswith('%'):
-                tag_name = part[1:]  # Remove '%' prefix
-                value = getattr(audio_file.tags, tag_name, None)
-                path_parts.append(value or "Unknown")
-            else:
-                path_parts.append(part)
-                
-        return base_dir.joinpath(*path_parts) / audio_file.path.name
-
-    def check_tags(self):
+    def fetch_tags(self):
         """Check and correct tags for all songs in directory."""
-        log.debug("Checking tags...")
+        log.info("Fetching tags...")
         changes = {}
         for audio_file in self.audio_files:
-            changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.check_tags()
+            changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.fetch_tags()
         return changes
 
     def gather_tag_values(self, tag_name: str) -> Set[str]:
@@ -209,6 +181,11 @@ class SongDir:
             if value:
                 values.add(value)
         return values
+
+    def write_tags(self):
+        """Write tags to all audio files in directory."""
+        for audio_file in self.audio_files:
+            audio_file.write_tags()
 
     @property
     def stats(self) -> Dict:

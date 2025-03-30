@@ -5,9 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "beautifulsoup4>=4.13.3",
     "dotenv>=0.9.9",
     "music-tag>=0.4.3",
     "mutagen>=1.47.0",
+    "pillow>=11.1.0",
     "pylast>=5.5.0",
     "python3-discogs-client>=2.8",
     "rich>=13.9.4",
