@@ -50,8 +50,8 @@ def test_is_compilation(album) -> tuple[bool, str]:
     total_tracks = len(album.audio_files)
     
     for track in album.audio_files:
-        # Use album_artist if available, otherwise song_artist
-        artist = track.tags.album_artist or track.tags.song_artist
+        # Use album_artist if available, otherwise artist
+        artist = track.tags.album_artist or track.tags.artist
         if not artist:
             continue
             

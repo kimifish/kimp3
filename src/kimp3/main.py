@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Tuple, Callable
 from rich.pretty import pretty_repr
 import kimp3.file_operations as file_operations
 from kimp3.config import cfg, APP_NAME, HOME_DIR
@@ -90,7 +90,7 @@ class ScanDir:
             changes[str(directory.path)] = directory.check_tags()
         return changes
     
-    def process_by_one(self):
+    def process_by_one(self) -> Dict[str, List[int]]:
         """Process each directory one by one.
         
         For each directory:
@@ -99,13 +99,29 @@ class ScanDir:
         3. Executes pending file operations
         4. Writes updated tags
         """
+        stats: Dict[str, List[int]] = {"write_tags": [0, 0]}
         for d in self.directories_list:
             print(sep_with_header(f"Processing {str(d.path)}"))
             if cfg.tags.fetch_tags:
                 changes = d.fetch_tags()
+            d.process_missing_tags_from_local_data()
             d.process_files(cfg.scan.move_or_copy)
             file_operations.execute()
-            d.write_tags()
+            stats = self._update_stats(d.write_tags, stats)
+        return stats
+
+    @staticmethod
+    def _update_stats(func: Callable, stats: Dict[str, List[int]]) -> Dict[str, List[int]]:
+        """Update statistics based on function results.
+        
+        Args:
+            func: Function that was executed
+            stats: Dictionary to update with results
+        """
+        successes, failures, skips = func()
+        stats[func.__name__][0] += successes
+        stats[func.__name__][1] += failures
+        return stats
 
     @property
     def stats(self):
@@ -144,15 +160,18 @@ def main():
     Returns:
         int: Exit code (0 for success)
     """
+    if cfg.collection.clean_symlinks:
+        file_operations.build_genre_links_map()
+
     dirs_to_scan = []
     for directory in cfg.scan.dir_list:
         if os.path.isdir(directory):
             if os.access(directory, os.R_OK):
                 dirs_to_scan.append(ScanDir(directory))
             else:
-                log.critical('Access to ' + directory + ' denied.')
+                log.critical('Access to ' + str(directory) + ' denied.')
         else:
-            log.critical('Directory ' + directory + ' doesn\'t exist.')
+            log.critical('Directory ' + str(directory) + ' doesn\'t exist.')
     
     for d in dirs_to_scan:
         log.debug("Scanning stats:")
@@ -164,7 +183,9 @@ def main():
     for directory in dirs_to_scan:
         directory.process_by_one()
 
-    file_operations.clean_broken_symlinks()
+    if cfg.collection.clean_symlinks:
+        file_operations.clean_broken_symlinks()
+
     log.debug(f"Cache stats: {pretty_repr(get_cache_stats())}")
     clear_cache()
     return

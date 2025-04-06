@@ -4,6 +4,7 @@
 
 import logging
 import kimp3.file_operations as file_operations
+from kimp3.interface.utils import yes_or_no
 from kimp3.song import AudioFile, UsualFile
 from pathlib import Path
 from rich.pretty import pretty_repr
@@ -104,7 +105,7 @@ class SongDir:
         """Process audio files according to specified operation.
 
         Args:
-            operation: FileOperation enum value (COPY/MOVE)
+            operation: FileOperation enum value (COPY/MOVE/NONE)
         """
         if not self.audio_files:
             return
@@ -151,7 +152,7 @@ class SongDir:
         """Process all files in directory.
         
         Args:
-            operation: FileOperation enum value (COPY/MOVE)
+            operation: FileOperation enum value (COPY/MOVE/NONE)
         """
         # First process audio files to calculate new paths
         self._process_audio_files(operation)
@@ -182,10 +183,48 @@ class SongDir:
                 values.add(value)
         return values
 
-    def write_tags(self):
-        """Write tags to all audio files in directory."""
+    def write_tags(self) -> tuple:
+        """Write tags to all audio files in directory.
+        
+        Returns:
+            tuple: (number of successful writes, number of failed writes)
+        """
+        successes = 0
+        failures = 0
+        skips = 0
+        interactive = cfg.interactive
+        answer = 'y'
+        
         for audio_file in self.audio_files:
-            audio_file.write_tags()
+            if interactive:
+                audio_file.print_changes(show_tags=True, show_cover=True, show_lyrics=True)
+                answer = yes_or_no("Write tags?", "yYnN")
+
+            if answer in 'YN':
+                interactive = False
+
+            if answer.lower() == 'n':
+                skips += 1
+                continue
+
+            if audio_file.write_tags():
+                successes += 1
+            else:
+                failures += 1
+        
+        if successes > 0:
+            log.info(f"[green]Successfully wrote tags to {successes} files[/green]")
+        if failures > 0:
+            log.error(f"[red]Failed to write tags to {failures} files[/red]")
+        if skips > 0:
+            log.info(f"[yellow]Skipped writing tags to {skips} files[/yellow]")
+            
+        return (successes, failures, skips)
+    
+    def process_missing_tags_from_local_data(self) -> None:
+        """Process missing tags from local data for all audio files."""
+        for audio_file in self.audio_files:
+            audio_file.process_missing_tags_from_local_data()
 
     @property
     def stats(self) -> Dict:

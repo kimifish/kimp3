@@ -14,6 +14,7 @@ import hashlib
 from pathlib import Path
 import os
 from kimp3.config import cfg, APP_NAME
+from kimp3.interface.utils import yes_or_no
 from kimp3.models import AudioTags
 from kimp3.strings_operations import normalize_string, string_similarity
 
@@ -61,6 +62,11 @@ class TaggedTrack():
 
         self.rating: str = tags.rating
         self.lyrics: Optional[str] = tags.lyrics
+
+        if cfg.tags.fetch_lyrics:
+            self.update_lyrics()
+        if cfg.tags.fetch_album_cover:
+            self.update_cover()
 
         # log.debug(self)
 
@@ -169,7 +175,7 @@ class TaggedTrack():
         """Update album metadata including artist, title and track numbers."""
         self.album_artist.name = self._correct_artist_name(self.album_artist)
         self.album.title = self._correct_album_name(self.album)
-
+        
         tracks = _get_album_tracks(self.album)
         if not tracks:
             return
@@ -181,6 +187,11 @@ class TaggedTrack():
     
     def update_tags(self):
         """Update tags from Last.FM including genre and other metadata."""
+
+        if cfg.tags.skip_existing_tags and self.tags.genre and self.tags.lastfm_tags:
+            log.debug(f"Skipping tags fetch for {self.artist.name} - {self.album.title} (tags already exist)")
+            return
+
         artist_tags = _get_tags(self.artist, min_weight=50)
         album_tags = _get_tags(self.album, min_weight=10)
         track_tags = _get_tags(self.track, min_weight=5)
@@ -194,6 +205,11 @@ class TaggedTrack():
 
     def update_cover(self):
         """Update album cover from Last.FM."""
+        # Skip if cover already exists and skip_existing_cover is True
+        if cfg.tags.skip_existing_cover and self.tags.album_cover:
+            log.debug(f"Skipping cover fetch for {self.artist.name} - {self.album.title} (cover already exists)")
+            return
+
         cover_data, mime_type = get_album_cover(
             self.artist.name or self.tags.artist,
             self.album.title or self.tags.album
@@ -204,6 +220,12 @@ class TaggedTrack():
 
     def update_lyrics(self):
         """Update track lyrics from Lyrics.ovh."""
+        # Skip if lyrics already exist and skip_existing_lyrics is True
+        if cfg.tags.skip_existing_lyrics and self.tags.lyrics:
+            log.debug(f"Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)")
+            self.lyrics = self.tags.lyrics
+            return
+
         lyrics = get_lyrics(
             self.artist.name or self.tags.artist,
             self.track.title or self.tags.title
@@ -212,10 +234,6 @@ class TaggedTrack():
             self.lyrics = lyrics
 
     def get_audiotags(self) -> AudioTags:
-        if cfg.tags.fetch_lyrics:
-            self.update_lyrics()
-        if cfg.tags.fetch_album_cover:
-            self.update_cover()
         return AudioTags(
             title=self.track.title or self.tags.title,
             artist=self.artist.name or self.tags.artist,
@@ -478,7 +496,7 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
         
         response = requests.get(search_url, headers=headers, params=params, timeout=10)
         if response.status_code != 200:
-            log.warning(f"Genius API search failed for {clean_artist} - {clean_title}: HTTP {response.status_code}")
+            log.warning(f"Genius API search failed for \"{clean_artist} - {clean_title}\": HTTP {response.status_code}")
             return None
             
         data = response.json()
@@ -502,7 +520,7 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
                 break
         
         if not best_match:
-            log.debug(f"No matching lyrics found on Genius for {artist} - {title}")
+            log.debug(f"No matching lyrics found on Genius for \"{artist} - {title}\"")
             return None
             
         # Get lyrics URL from the best match
@@ -531,7 +549,7 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
         return lyrics.strip()
         
     except Exception as e:
-        log.error(f"Error fetching lyrics from Genius for {artist} - {title}: {e}")
+        log.error(f"Error fetching lyrics from Genius for \"{artist} - {title}\": {e}")
         return None
 
 
@@ -561,18 +579,18 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
             if lyrics:
                 return lyrics
                 
-        log.debug(f"No lyrics found on Lyrics.ovh for {artist} - {title}, trying Genius...")
+        log.debug(f"No lyrics found on Lyrics.ovh for \"{artist} - {title}\", trying Genius...")
         
         # Try Genius as fallback
         lyrics = _get_lyrics_from_genius(artist, title)
         if lyrics:
             return lyrics
             
-        log.info(f"No lyrics found for {artist} - {title} on either service")
+        log.info(f"No lyrics found for \"{artist} - {title}\" on either service")
         return None
             
     except Exception as e:
-        log.error(f"Error fetching lyrics for {artist} - {title}: {e}")
+        log.error(f"Error fetching lyrics for \"{artist} - {title}\": {e}")
         return None
 
 

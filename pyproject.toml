@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kimp3"
-version = "0.2.0"
+version = "0.2.2"
 description = "Self-contained music library manager that embeds metadata directly in audio files"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-keywords = ["music", "mp3", "tags", "metadata", "lastfm", "audio"]
+keywords = ["music", "mp3", "tags", "metadata", "lastfm", "audio", "cli"]
 authors = [
-    { name = "Your Name", email = "your.email@example.com" },
+    { name = "kimifish", email = "kimifish@proton.me" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -26,21 +26,48 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "beautifulsoup4>=4.13.3",
-    "dotenv>=0.9.9",
-    "music-tag>=0.4.3",
-    "mutagen>=1.47.0",
-    "pillow>=11.1.0",
-    "pylast>=5.5.0",
-    "python3-discogs-client>=2.8",
-    "rich>=13.9.4",
+    # Audio file handling
+    "mutagen>=1.47.0",        # Low-level audio metadata
+    "music-tag>=0.4.3",       # High-level tag manipulation
+    
+    # Image processing
+    "pillow>=11.1.0",         # Album cover processing
+    
+    # Music metadata services
+    "pylast>=5.5.0",          # Last.FM API client
+    "python3-discogs-client>=2.8",  # Discogs API client
+    "requests>=2.31.0",       # HTTP client for Genius and cover art
+    "beautifulsoup4>=4.13.3", # Lyrics parsing
+    
+    # Configuration
+    "python-dotenv>=1.0.0",   # API keys in .env
+    "kimiconfig>=0.1.0",      # YAML config
+    
+    # CLI interface
+    "rich>=13.9.4",           # Console output formatting
+]
+
+[project.optional-dependencies]
+dev = [
+    # Development tools
+    "black>=23.0.0",         # Code formatting
+    "isort>=5.0.0",         # Import sorting
+    "mypy>=1.0.0",          # Type checking
+    "pylint>=3.0.0",        # Code linting
+    
+    # Testing
+    "pytest>=7.0.0",        # Unit testing
+    
+    # Debug and exploration
+    "ipython>=8.0.0",       # Enhanced REPL
+    "jupyter>=1.0.0",       # Notebook support
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/kimp3"
-Documentation = "https://github.com/yourusername/kimp3#readme"
-Issues = "https://github.com/yourusername/kimp3/issues"
-Source = "https://github.com/yourusername/kimp3"
+Homepage = "https://github.com/kimifish/kimp3"
+Documentation = "https://github.com/kimifish/kimp3#readme"
+Issues = "https://github.com/kimifish/kimp3/issues"
+Source = "https://github.com/kimifish/kimp3"
 
 [project.scripts]
 kimp3 = "kimp3.__main__:main"

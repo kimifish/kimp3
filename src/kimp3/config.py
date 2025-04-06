@@ -21,12 +21,12 @@ install_rich_traceback(show_locals=True)
 
 APP_NAME = 'kimp3'
 HOME_DIR = os.path.expanduser("~")
+DEFAULT_CONFIG_DIR = os.path.join(HOME_DIR, ".config", APP_NAME)
 DEFAULT_CONFIG_FILE = os.path.join(
-    os.getenv("XDG_CONFIG_HOME", os.path.join(HOME_DIR, ".config")), 
-    APP_NAME, 
+    os.getenv("XDG_CONFIG_HOME", DEFAULT_CONFIG_DIR), 
     "config.yaml")
 
-load_dotenv()
+load_dotenv(os.path.join(DEFAULT_CONFIG_DIR, ".env"))
 
 # Logging setup
 logging.basicConfig(
@@ -62,7 +62,7 @@ def _init_logs():
         hasattr(cfg.logging.loggers, 'suppress_level')):
         for logger_name in cfg.logging.loggers.suppress:
             logging.getLogger(logger_name).setLevel(
-                getattr(logging, cfg.logging.loggers.suppress_level)
+                getattr(logging, cfg.logging.loggers.suppress_level.upper())
             )
     else:
         log.warning("No logger suppression configuration found")
@@ -70,8 +70,8 @@ def _init_logs():
     # Check and set root logger level
     if hasattr(cfg.logging, 'level'):
         try:
-            parent_logger.setLevel(cfg.logging.level)
-            if cfg.logging.level == "DEBUG":
+            parent_logger.setLevel(cfg.logging.level.upper())
+            if cfg.logging.level.upper() == "DEBUG":
                 cfg.print_config()
         except (ValueError, AttributeError) as e:
             log.warning(f"Invalid logging level configuration: {e}")
@@ -161,7 +161,7 @@ cfg.load_files([args.config_file])
 cfg.load_args(unknown)
 
 try:
-    cfg.update('scan.move_or_copy', FileOperation(cfg.scan.move_or_copy))
+    cfg.update('scan.move_or_copy', FileOperation(str(cfg.scan.move_or_copy).lower()))
 except ValueError as e:
     log.error(f"Invalid configuration entry: scan.move_or_copy = {cfg.scan.move_or_copy}. Set to default 'copy'")
     cfg.update('scan.move_or_copy', FileOperation.COPY)

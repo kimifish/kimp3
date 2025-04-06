@@ -9,10 +9,15 @@ from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-import io
+import logging
 
-from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
+from mutagen.easyid3 import EasyID3
+
+#from kimp3.config import APP_NAME
+APP_NAME = 'kimp3'
+
+log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 class FileOperation(Enum):
@@ -41,7 +46,6 @@ class FileOperation(Enum):
             raise ValueError(
                 f"Invalid operation '{value}'. Must be one of: {', '.join(valid_values)}"
             )
-
 
 @dataclass
 class AudioTags:
@@ -73,12 +77,31 @@ class AudioTags:
             except (IndexError, KeyError):
                 return ''
 
-        def get_comment(desc: str) -> str:
-            """Extracts comment with specific description."""
-            for key, frame in id3.items():
-                if key.startswith('COMM:') and frame.desc == desc:
-                    return frame.text[0][len(desc + ': '):]
-            return ''
+        # Extract all needed frames in one pass
+        lyrics = None
+        cover_data = None
+        cover_mime = "image/jpeg"
+        comments = {}
+
+        # Get frames directly
+        uslt_frames = id3.getall('USLT')
+        apic_frames = id3.getall('APIC')
+        comm_frames = id3.getall('COMM')
+
+        # Get lyrics from first USLT frame if exists
+        if uslt_frames:
+            lyrics = uslt_frames[0].text
+
+        # Get cover from first APIC frame if exists
+        if apic_frames:
+            cover = apic_frames[0]
+            cover_data = cover.data
+            cover_mime = cover.mime
+
+        # Process comments
+        for comm in comm_frames:
+            if comm.desc:  # Only process comments with descriptions
+                comments[comm.desc] = comm.text[0]
 
         track_info = cls._parse_track_number(get_tag_value('tracknumber'))
         disc_info = cls._parse_track_number(get_tag_value('discnumber'))
@@ -96,8 +119,11 @@ class AudioTags:
             genre=get_tag_value('genre'),
             comment=get_tag_value('comment'),
             compilation=bool(get_tag_value('compilation')),
-            lastfm_tags=get_comment('LastFM tags'),
-            rating=get_comment('Rating')
+            lastfm_tags=comments.get('LastFM tags', '').replace('LastFM tags: ', ''),
+            rating=comments.get('Rating', '').replace('Rating: ', ''),
+            album_cover=cover_data,
+            album_cover_mime=cover_mime,
+            lyrics=lyrics
         )
 
     @staticmethod
@@ -125,11 +151,37 @@ class AudioTags:
             return None
 
 
+class UsualFile:
+    """Base class for handling regular files."""
+    def __init__(self, filepath: str | Path, song_dir):
+        self._filepath = Path(filepath)
+        self.path = self._filepath.parent
+        self.name = self._filepath.name
+        self._new_filepath: Path = Path()
+        self.new_name: str = ''
+        self.new_path: Path = Path()
+        self.song_dir = song_dir
+        self.operation_processed = FileOperation.NONE
 
-@dataclass
-class AudioFile:
-    """Model for storing audio file information."""
-    path: Path
-    tags: AudioTags
-    new_path: Optional[Path] = None
+    @property
+    def filepath(self) -> Path:
+        return self._filepath
 
+    @filepath.setter
+    def filepath(self, value: str | Path) -> None:
+        self._filepath = Path(value)
+        self.path = self._filepath.parent
+        self.name = self._filepath.name
+
+    @property
+    def new_filepath(self) -> Path:
+        return self._new_filepath
+
+    @new_filepath.setter
+    def new_filepath(self, value: str | Path) -> None:
+        self._new_filepath = Path(value)
+        self.new_path = self._new_filepath.parent
+        self.new_name = self._new_filepath.name
+
+    def print_changes(self) -> None:
+        print(f"{self.filepath} ---> {self.new_filepath}")

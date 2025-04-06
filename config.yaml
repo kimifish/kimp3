@@ -5,15 +5,18 @@ interactive: True
 dry_run: False
 
 scan:
-  # List of directories to scan (comma-separated)
-  # dir_list = '/media/kimifish/MediaStore/Музыка, /home/kimifish/Downloads'
-  # dir_list: '/home/pi/Downloads'
-  # dir_list: '/home/kimifish/kimiside@gmail.com/Music/Песенник'
-  # dir_list: '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
-  # dir_list: '/home/kimifish/Downloads/ППВК'
-  dir_list: '/home/kimifish/Downloads/Spasibo'
-  # dir_list: ['/home/kimifish/Downloads/VHS Glitch/albums/2016 - Demoniac',
-  #            '/junk/kimiside@gmail.com/Music/Песенник']
+  # List of directories to scan
+  dir_list:
+  # - '/media/kimifish/MediaStore/Музыка
+  # - /home/kimifish/Downloads
+  # - '/home/pi/Downloads'
+  # - '/home/kimifish/kimiside@gmail.com/Music/Песенник'
+  # - '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
+  # - '/home/kimifish/Downloads/ППВК'
+  # - '/home/kimifish/Downloads/Spasibo'
+  - '/home/kimifish/Music/Nirvana/1991. Nevermind-src'
+  # - '/home/kimifish/Downloads/VHS Glitch/albums/2016 - Demoniac'
+  # - '/junk/kimiside@gmail.com/Music/Песенник'
 
   # Directory names to skip while parsing:
   skip_dirs: ['.unwanted', '.AppleDouble']
@@ -27,7 +30,7 @@ scan:
   # Extensions for files to scan
   valid_extensions: ['.mp3', '.flac']
 
-  # Move or copy by default:
+  # Move or copy by default. For modifying tags in place use 'none':
   move_or_copy: 'copy'
 
   # Common album filenames to be copied/moved with albums.
@@ -50,6 +53,12 @@ collection:
   # How many songs of all in directory must have different artists
   # to treat it as a compilation.
   compilation_coef: 0.5
+
+  # Create symlinks to files in genre folders
+  create_genre_links: True
+
+  # Clean broken symlinks
+  clean_symlinks: True
 
 paths:
   # Patterns for creating folders relative to Music Collection Directory
@@ -81,6 +90,11 @@ tags:
   fetch_tags: True
   fetch_album_cover: True
   fetch_lyrics: True
+  
+  # Skip fetching if content already exists in the file
+  skip_existing_tags: True
+  skip_existing_cover: True
+  skip_existing_lyrics: True
 
   # You have to have your own unique two values for API_KEY and API_SECRET
   # Obtain yours from http://www.last.fm/api/account for Last.fm

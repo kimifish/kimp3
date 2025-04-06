@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from kimp3.config import cfg
+from time import sleep
 
 if sys.platform[:3] == 'win':
     import msvcrt
@@ -32,19 +33,22 @@ elif sys.platform[:3] == 'lin':
         return c
 
 
-def yes_or_no(question) -> tuple[bool, bool]:
-    print(question, end=":")
+def yes_or_no(question: str, options: str = "ynA") -> str:
+    """Ask user a question and wait for single key response.
+    
+    Args:
+        question: Question to display
+        options: String containing allowed key responses (case sensitive)
+    
+    Returns:
+        Pressed key
+    """
+    print(f"{question} [{'/'.join(options)}]", end=": ", flush=True)
     while True:
         k = getkey().decode()
-        if k.lower() == 'y':
-            print('y')
-            return True, False
-        if k.lower() == 'a':
-            print('a')
-            return True, True
-        if k.lower() == 'n':
-            print('n')
-            return False, False
+        if k in options:
+            print(k)
+            return k
 
 def sep_with_header(header: str):
     length = cfg.runtime.console.width

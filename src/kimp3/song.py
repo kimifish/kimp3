@@ -3,62 +3,28 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional, List
 
-from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
+from mutagen.easyid3 import EasyID3
 from mutagen.id3._frames import COMM, APIC, USLT
 
 import kimp3.file_operations as file_operations
 import kimp3.tags
-from kimp3.models import AudioTags, FileOperation
+from kimp3.models import AudioTags, FileOperation, UsualFile
 from kimp3.config import cfg, APP_NAME
 from kimp3.strings_operations import sanitize_path_component
+from kimp3.interface.utils import yes_or_no
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
-
-
-class UsualFile:
-    """Base class for handling regular files."""
-    def __init__(self, filepath: str | Path, song_dir=None):
-        self._filepath = Path(filepath)
-        self.path = self._filepath.parent
-        self.name = self._filepath.name
-        self._new_filepath: Path = Path()
-        self.new_name: str = ''
-        self.new_path: Path = Path()
-        self.song_dir = song_dir
-        self.operation_processed = FileOperation.NONE
-
-    @property
-    def filepath(self) -> Path:
-        return self._filepath
-
-    @filepath.setter
-    def filepath(self, value: str | Path) -> None:
-        self._filepath = Path(value)
-        self.path = self._filepath.parent
-        self.name = self._filepath.name
-
-    @property
-    def new_filepath(self) -> Path:
-        return self._new_filepath
-
-    @new_filepath.setter
-    def new_filepath(self, value: str | Path) -> None:
-        self._new_filepath = Path(value)
-        self.new_path = self._new_filepath.parent
-        self.new_name = self._new_filepath.name
-
-    def print_changes(self) -> None:
-        print(f"{self.filepath} ---> {self.new_filepath}")
 
 
 class AudioFile(UsualFile):
     """Class for working with MP3 files, including tags and file operations."""
     
-    def __init__(self, filepath: str | Path, song_dir=None):
+    def __init__(self, filepath: str | Path, song_dir):
         super().__init__(filepath, song_dir)
         
         self.genre_paths: List[Path] = []
@@ -68,53 +34,36 @@ class AudioFile(UsualFile):
     def _read_tags(self) -> AudioTags:
         """Reads tags from file using mutagen."""
         try:
-            # Open file as EasyID3 for basic tags
+            # First open as ID3 to get all frames including USLT
+            id3 = ID3(self.filepath, v2_version=4)
+            
+            # Then create EasyID3 from the same file
             easy_tags = EasyID3(self.filepath)
             
-            # Open same file as ID3 for comments and cover
-            id3 = ID3(self.filepath)
+            log.debug(f"Reading tags from {self.filepath}")
+            log.debug(f"ID3 keys: {id3.keys()}")
             
-            # Get album cover
-            cover_data = None
-            cover_mime = "image/jpeg"
-            
-            for key in id3.keys():
-                if key.startswith('APIC:'):
-                    cover = id3[key]
-                    cover_data = cover.data
-                    cover_mime = cover.mime
-                    break
-            
-            # Create AudioTags object from easy_tags
+            # Create AudioTags object from mutagen
             tags = AudioTags.from_mutagen(easy_tags, id3)
             
-            # Add cover
-            tags.album_cover = cover_data
-            tags.album_cover_mime = cover_mime
-
-            # Read lyrics from USLT frame
-            lyrics = None
-            for key in id3.keys():
-                if key.startswith('USLT:'):
-                    lyrics = id3[key].text
-                    break
-            tags.lyrics = lyrics
-
-            # Handle compilations
-            if self.song_dir and getattr(self.song_dir, 'is_compilation', False):
-                if not tags.album_artist or tags.album_artist.lower() in cfg.bad_artists:
-                    tags.album_artist = 'Various Artists'
-                    tags.compilation = True
-
-            # Check and fix empty values
-            if not tags.album_artist and tags.artist:
-                tags.album_artist = tags.artist
+            if tags.lyrics:
+                log.debug(f"Found lyrics: {tags.lyrics[:100]}...")
+            else:
+                log.debug("No lyrics found in file")
 
             return tags
 
         except Exception as e:
             log.error(f"Error reading tags from {self.filepath}: {e}")
+            log.exception("Full traceback:")
             return AudioTags()
+    
+    def process_missing_tags_from_local_data(self) -> None:
+        """Process tags from local data if some are missing."""
+        if not self.tags.album_artist:
+            self.tags.album_artist = self.tags.artist
+        if not self.tags.total_tracks and self.song_dir.track_count:
+            self.tags.total_tracks = self.song_dir.track_count
 
     def fetch_tags(self) -> dict[str, tuple[str, str]]:
         """Checks and corrects tags via Last.FM.
@@ -167,8 +116,9 @@ class AudioFile(UsualFile):
         
         return changes
 
-    def write_tags(self) -> None:
+    def write_tags(self) -> bool:
         """Writes tags to file."""
+
         try:
             # Open file as EasyID3 for basic tags
             easy_tags = EasyID3(self.filepath)
@@ -225,10 +175,20 @@ class AudioFile(UsualFile):
             # Reload ID3 tags after saving EasyID3
             id3 = ID3(self.filepath)
 
-            # Remove existing comments
+            # Remove only those comments that we're going to write
+            comments_to_remove = []
+            if self.tags.comment:
+                comments_to_remove.append('')  # Default comment description
+            if self.tags.rating:
+                comments_to_remove.append('Rating')
+            if self.tags.lastfm_tags:
+                comments_to_remove.append('LastFM tags')
+                
             for key in list(id3.keys()):
                 if key.startswith('COMM:'):
-                    del id3[key]
+                    desc = key.split(':')[1] if ':' in key else ''
+                    if desc in comments_to_remove:
+                        del id3[key]
 
             # Add new comments
             if self.tags.comment:
@@ -259,6 +219,11 @@ class AudioFile(UsualFile):
             
             # Add lyrics if available
             if self.tags.lyrics:
+                # Remove existing lyrics
+                for key in list(id3.keys()):
+                    if key.startswith('USLT:'):
+                        del id3[key]
+                        
                 id3.add(USLT(
                     encoding=3,  # UTF-8
                     lang='eng',  # Language code
@@ -272,21 +237,25 @@ class AudioFile(UsualFile):
             log.debug(f"Tags successfully written to {self.filepath}")
             
             # Verify tags were written correctly
-            verification_tags = EasyID3(self.filepath)
-            for key, value in tag_mapping.items():
-                if value and (key not in verification_tags or verification_tags[key][0] != value):
-                    log.warning(f"Tag verification failed for {key}: expected '{value}', got '{(verification_tags.get(key) or [''])[0]}'")
+            if cfg.logging.level.upper() == logging.DEBUG:
+                verification_tags = EasyID3(self.filepath)
+                for key, value in tag_mapping.items():
+                    if value and (key not in verification_tags or verification_tags[key][0] != value):
+                        log.warning(f"Tag verification failed for {key}: expected '{value}', got '{(verification_tags.get(key) or [''])[0]}'")
+            return True
 
         except Exception as e:
             log.error(f"Error writing tags to {self.filepath}: {e}")
+            return False
 
-    def calculate_new_paths_from_tags(self) -> Optional[Path]:
+    def calculate_new_paths_from_tags(self) -> None:
         """Calculates new path for file based on tags and configuration."""
+        self.genre_paths = []
         try:
             base_dir = Path(cfg.collection.directory)
             
             genre_pattern = cfg.paths.patterns.genre
-
+            
             if self.song_dir and self.song_dir.is_compilation:
                 pattern = cfg.paths.patterns.compilation
             else:
@@ -309,18 +278,9 @@ class AudioFile(UsualFile):
                 'genre': sanitize_path_component(str(self.tags.genre)),
                 'year': str(self.tags.year) if self.tags.year else 'XXXX'
             }
-
-            # Replace pattern variables with actual values
-            path = pattern
-            for var, value in tag_mapping.items():
-                path = path.replace(f'%{var}', value or "Unknown")
-
-            # Split path and create Path object
-            path_parts = [p for p in path.split('/') if p]
-            new_path = base_dir.joinpath(*path_parts)
             
             # Create genre paths using pattern from config
-            if self.tags.genre:
+            if cfg.collection.create_genre_links and self.tags.genre:
                 for genre in str(self.tags.genre).split(','):
                     genre_path = genre_pattern
                     tag_mapping['genre'] = genre.strip()
@@ -331,29 +291,80 @@ class AudioFile(UsualFile):
                     full_genre_path = base_dir.joinpath(*genre_path_parts)
                     self.genre_paths.append(full_genre_path)
 
+            if cfg.scan.move_or_copy == FileOperation.NONE:
+                return
+
+            # Replace pattern variables with actual values
+            path = pattern
+            for var, value in tag_mapping.items():
+                path = path.replace(f'%{var}', value or "Unknown")
+
+            # Split path and create Path object
+            path_parts = [p for p in path.split('/') if p]
+            new_path = base_dir.joinpath(*path_parts)
+
             self.new_filepath = new_path
 
         except Exception as e:
             log.error(f"Error calculating new path for {self.filepath}: {e}")
-            return None
 
     def copy_to(self) -> None:
         """Prepares file for copying."""
-        self._calculate_new_paths()
+        # self.calculate_new_paths_from_tags()
         file_operations.files_to_copy.append(self)
+        self._remove_wrong_genre_links()
         
         for genre_path in self.genre_paths:
             file_operations.files_to_create_link.append([str(self.new_filepath), str(genre_path)])
 
     def move_to(self) -> None:
         """Prepares file for moving."""
-        self._calculate_new_paths()
+        # self.calculate_new_paths_from_tags()
         file_operations.files_to_move.append(self)
+        self._remove_wrong_genre_links()
         
         for genre_path in self.genre_paths:
             file_operations.files_to_create_link.append([str(self.new_filepath), str(genre_path)])
+    
+    def _remove_wrong_genre_links(self) -> None:
+        """Removes genre links that don't match the new genre."""
+        audiofilepath = str(self.new_filepath)
+        if audiofilepath not in file_operations.genre_links_map:
+            return
+        
+        # Get genre pattern and extract genre position
+        genre_pattern = cfg.paths.patterns.genre
+        pattern_parts = genre_pattern.split('/')
+        try:
+            genre_position = next(i for i, part in enumerate(pattern_parts) if '%genre' in part)
+        except StopIteration:
+            log.error("Genre pattern does not contain %genre variable")
+            return
+        
+        current_genres = set(genre.strip() for genre in str(self.tags.genre).split(',')) if self.tags.genre else set()
+        
+        for link_path in file_operations.genre_links_map[audiofilepath]:
+            # Get the genre from link path by its position in pattern
+            link_parts = link_path.parts
+            if len(link_parts) <= genre_position:
+                continue
+            
+            link_genre = link_parts[genre_position]
+            
+            # If genre from link is not in current genres, add to removal list
+            if link_genre not in current_genres:
+                if not hasattr(file_operations, 'links_to_remove'):
+                    file_operations.links_to_remove = []
+                file_operations.links_to_remove.append(link_path)
+                log.debug(f"Marking genre link for removal: {link_path} (genre '{link_genre}' not in {current_genres})")
 
-    def print_changes(self) -> None:
+
+    def print_changes(self, 
+                      show_tags: bool = False,
+                      show_path: bool = False,
+                      show_genre_links: bool = False,
+                      show_lyrics: bool = False,
+                      show_cover: bool = False) -> None:
         """Prints tag and path changes."""
         from rich import print
         from rich.panel import Panel
@@ -363,8 +374,8 @@ class AudioFile(UsualFile):
         console = Console(width=100)
         panel_width = 98  # Slightly less than console width to avoid wrapping
 
-        # Создаем панель для изменений тегов
-        if self.old_tags != self.tags:
+        # Create panel for tag changes
+        if show_tags and self.old_tags != self.tags:
             tag_changes = []
             for field in ['title', 'artist', 'album', 'album_artist', 
                          'genre', 'year', 'track_number', 'total_tracks', 
@@ -387,8 +398,8 @@ class AudioFile(UsualFile):
                 )
                 console.print(tag_panel)
 
-        # Выводим изменение пути файла
-        if self.filepath != self.new_filepath:
+        # Print path change
+        if show_path and self.filepath != self.new_filepath:
             path_content = (
                 f"[yellow]Current:[/yellow] {self.filepath}\n"
                 f"[green]New:[/green] {self.new_filepath}"
@@ -401,8 +412,8 @@ class AudioFile(UsualFile):
             )
             console.print(path_panel)
 
-        # Выводим информацию о символических ссылках для жанров
-        if self.genre_paths:
+        # Print genre links
+        if show_genre_links and self.genre_paths:
             genre_content = "\n".join(f"[green]{path}[/green]" for path in self.genre_paths)
             genre_panel = Panel(
                 genre_content,
@@ -412,8 +423,8 @@ class AudioFile(UsualFile):
             )
             console.print(genre_panel)
 
-        # Выводим информацию об обложке альбома
-        if self.tags.album_cover:
+        # Print album cover
+        if show_cover and self.tags.album_cover:
             cover_size = len(self.tags.album_cover) / 1024  # Convert to KB
             cover_content = (
                 f"[green]Cover image present[/green]\n"
@@ -428,8 +439,8 @@ class AudioFile(UsualFile):
             )
             console.print(cover_panel)
 
-        # Выводим информацию о текстах песен
-        if self.tags.lyrics:
+        # Print lyrics
+        if show_lyrics and self.tags.lyrics:
             lyrics_preview = self.tags.lyrics[:200] + "..." if len(self.tags.lyrics) > 200 else self.tags.lyrics
             lyrics_content = (
                 f"[green]Lyrics present[/green]\n"
@@ -444,8 +455,6 @@ class AudioFile(UsualFile):
             )
             console.print(lyrics_panel)
 
-        # Выводим разделитель
-        console.print("[dim]" + "─" * panel_width + "[/dim]")
 
     def __str__(self):
         return (
