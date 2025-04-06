@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kimp3"
-version = "0.2.2"
+version = "0.3.0"
 description = "Self-contained music library manager that embeds metadata directly in audio files"
 readme = "README.md"
 requires-python = ">=3.10"
