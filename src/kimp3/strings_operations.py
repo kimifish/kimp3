@@ -47,7 +47,7 @@ def normalize_string(s: str) -> str:
     return ''.join(c.lower() for c in s if c.isalnum())
 
 
-def string_similarity(str1: str, str2: str, min_ratio: float = 0.8) -> bool:
+def string_similarity(str1: str, str2: str, min_ratio: float = 0.5) -> float:
     """Compare strings using SequenceMatcher.
     
     Args:
@@ -56,6 +56,7 @@ def string_similarity(str1: str, str2: str, min_ratio: float = 0.8) -> bool:
         min_ratio: Minimum similarity ratio (0.0 to 1.0)
         
     Returns:
-        True if similarity ratio >= min_ratio
+        Similarity ratio
     """
-    return SequenceMatcher(None, str1.lower(), str2.lower()).ratio() >= min_ratio
+    result = SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
+    return result if result > min_ratio else 0

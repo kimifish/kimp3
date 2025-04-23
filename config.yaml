@@ -40,6 +40,7 @@ scan:
     - 'Thumbs.db'
     - 'front.jpg'
     - 'Cover.jpg'
+    - 'Cover.png'
     - 'front.jpeg'
 
 collection:
@@ -155,19 +156,21 @@ tags:
     'symphonic metal', 'synth pop', 'synthwave', 'tango', 'tech house', 'techno', 
     'teen pop', 'thrash metal', 'trance', 'trap', 'tribal house', 'trip hop', 
     'tropicália', 'turntablism', 'uk garage', 'vaporwave', 'viking metal', 'vocal jazz', 
-    'west coast hip hop', 'western swing', 'world music', 'zouk', 'zydeco',
+    'west coast hip hop', 'western swing', 'world', 'zouk', 'zydeco',
     ]
 
   # Tags below won't be added to id3 tag list and genres.
   banned_tags: 'song, hit, new, la la la, popular, increasingly popular,
     eurovision, gold, gay, albums i own, loved, awesome, good songs,
     vinyl, deep purple, seen live, alternative, niravana - nevermind, kurt cobain,
-    adriano, top100albumsbyme, ddt, zemfira, love it, interesting
+    adriano, top100albumsbyme, ddt, zemfira, love it, interesting, fucking awesome,
+    want to see live, shit
     '
   banned_tags_patterns:
     - '^\d+$'
     - '^\d+ stars$'
     - '^[the |]best$'
+    - '^[the |]best (?:song|track|album).*$'
     - '^best of .*'
     - '^discovered in.*'
     - 'top [\d+|artists|cd]'
@@ -196,11 +199,11 @@ tags:
   similar_tags_patterns:
 
   # Decades
-  - ['50s', "(?:50|50\\'s|fifties|1950\\'s?)"]
-  - ['60s', "(?:60|60\\'s|sixties|1960\\'s?)"]
-  - ['70s', "(?:70|70\\'s|seventies|1970\\'s?)"]
-  - ['80s', "(?:80|80\\'s|eighties|1980\\'s?)"]
-  - ['90s', "(?:90|90\\'s|nineties|1990\\'s?)"]
+  - ['50s', "(?:50|50\\'s|fifties|1950\\'s?|1950s)"]
+  - ['60s', "(?:60|60\\'s|sixties|1960\\'s?|1960s)"]
+  - ['70s', "(?:70|70\\'s|seventies|1970\\'s?|1970s)"]
+  - ['80s', "(?:80|80\\'s|eighties|1980\\'s?|1980s)"]
+  - ['90s', "(?:90|90\\'s|nineties|1990\\'s?|1990s)"]
   - ['00s', "(?:00\\'s|two thousands|2000s|2000-2009|aughts|noughties)"]
 
   # Descriptive
@@ -216,7 +219,7 @@ tags:
   - ['italian', "(?:italy|italian artists?)"]
   - ['japanese', "(?:japan|japanese artists?)"]
   - ['korean', "(?:korea|korean artists?)"]
-  - ['russian', "(?:russia|russian artists?)"]
+  - ['russian', "(?:russia|russian artists?)", "rus"]
 
   # Electronic/Dance
   - ['house', 'house music']
@@ -243,6 +246,8 @@ tags:
   - ['rock', 'rock\W{0,1}music']
   - ['alternative rock', 'alt\W{0,1}rock', 'alternative\W{0,1}rock']
   - ['punk rock', 'punk\W{0,1}rock']
+  - ['funk rock', 'funk\W{0,1}rock']
+  - ['funk metal', 'funk\W{0,1}metal']
   - ['pop rock', 'pop\W{0,1}rock', 'rockpop']
 
   # Pop variants
@@ -257,7 +262,7 @@ tags:
   - ['jazz', 'jazz music']
 
   # Other genres
-  - ['hip hop', 'hip\W{0,1}hop', 'rap', 'rap music']
+  - ['hip hop', '(?:alternative |alt |)hip\W{0,1}hop', '(?:alternative |alt |)rap', 'rap music']
   - ['classical', 'classical music']
   - ['soul', 'soul music']
   - ['reggae', 'reggae music']
@@ -279,6 +284,7 @@ tags:
 
   # Other Tags
   - ['indie', 'indie\W{0,1}rock']
+  - ['funny', 'funny\W{0,1}song', 'fun']
   
   # Replacements for Genius search. Not used for tag processing.
   # Genius names are not always the same as LastFM.
@@ -286,6 +292,9 @@ tags:
   # ['lastfm_name', 'genius_name']
   - ['zемфира', 'земфира']
 
+  # LLM service configuration
+  use_llm: True
+  llm_url: "http://kimipc.lan:8000/music_machine"
 
 logging:
   level: "DEBUG"

@@ -9,11 +9,11 @@ from typing import Optional, List
 
 from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
-from mutagen.id3._frames import COMM, APIC, USLT
+from mutagen.id3 import COMM, APIC, USLT # type: ignore
 
 import kimp3.file_operations as file_operations
 import kimp3.tags
-from kimp3.models import AudioTags, FileOperation, UsualFile
+from kimp3.models import AudioTags, FileOperation, UsualFile, AbstractSongDir
 from kimp3.config import cfg, APP_NAME
 from kimp3.strings_operations import sanitize_path_component
 from kimp3.interface.utils import yes_or_no
@@ -24,7 +24,7 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 class AudioFile(UsualFile):
     """Class for working with MP3 files, including tags and file operations."""
     
-    def __init__(self, filepath: str | Path, song_dir):
+    def __init__(self, filepath: str | Path, song_dir: AbstractSongDir):
         super().__init__(filepath, song_dir)
         
         self.genre_paths: List[Path] = []
@@ -92,7 +92,7 @@ class AudioFile(UsualFile):
         try:
             # Update tags via Last.FM
             if cfg.tags.fetch_tags:
-                self.tags = kimp3.tags.TaggedTrack(self.tags).get_audiotags()
+                self.tags = kimp3.tags.TaggedTrack(self.tags, self.song_dir).get_audiotags()
             
             # Handle 'The' article in artist name
             for field in ['artist', 'album_artist']:

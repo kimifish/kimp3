@@ -2,6 +2,7 @@
 # pyright: basic
 # pyright: reportAttributeAccessIssue=false
 
+import json
 import logging
 import re
 from typing import List, Optional, Dict, Tuple, Set
@@ -15,7 +16,7 @@ from pathlib import Path
 import os
 from kimp3.config import cfg, APP_NAME
 from kimp3.interface.utils import yes_or_no
-from kimp3.models import AudioTags
+from kimp3.models import AudioTags, AbstractSongDir
 from kimp3.strings_operations import normalize_string, string_similarity
 
 NUMBER_OF_TAGS = 15
@@ -38,8 +39,9 @@ _COVER_CACHE_DIR = Path(cfg.paths.cache_dir) / "album_covers"
 
 
 class TaggedTrack():
-    def __init__(self, tags: AudioTags):
+    def __init__(self, tags: AudioTags, songdir: AbstractSongDir):
         self.tags = tags
+        self.songdir = songdir
 
         self.artist: pylast.Artist = network.get_artist(tags.artist)
         self.artist.name = self._correct_artist_name(self.artist)
@@ -134,11 +136,31 @@ class TaggedTrack():
         try:
             top_albums = _get_artist_albums(album.artist.name)
             corrected = self.tags.album
+            best_ratio = 0.0
+            best_album = None
 
             for iter_album in top_albums:
-                if string_similarity(iter_album.item.title, self.tags.album):
+                current_ratio = string_similarity(iter_album.item.title, self.tags.album)
+                if current_ratio > best_ratio:
+                    best_ratio = current_ratio
                     corrected = iter_album.item.title
-                    break
+                    best_album = iter_album.item
+            
+            if best_album and self.songdir.track_count:
+                try:
+                    lastfm_tracks = list(best_album.get_tracks())
+                    lastfm_track_count = len(lastfm_tracks)
+                    
+                    if lastfm_track_count != self.songdir.track_count:
+                        log.warning(f"Track count mismatch for '{best_album.title}':")
+                        log.warning(f"Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}")
+                        
+                        if cfg.interactive:
+                            prompt = f"Accept album '{best_album.title}' despite track count mismatch?"
+                            if yes_or_no(prompt, "yn") == 'n':
+                                return self.tags.album  # Keep original album name
+                except pylast.WSError:
+                    log.warning(f"Failed to get track count for album '{best_album.title}'")
             
             # Save to cache
             _album_corrections[cache_key] = corrected
@@ -328,6 +350,9 @@ def _get_tags(
     lastfm_tags = list()
     for tag_obj in lastfm_raw_tags:
         if int(tag_obj.weight) < min_weight:
+            continue
+        # Filter out tags that are too long
+        if len(tag_obj.item.get_name()) > 50:
             continue
         lastfm_tags.append(tag_obj)
 
@@ -670,16 +695,22 @@ def process_lastfm_tags(
     """Processes tags from Last.FM."""
 
     tags_set = set()
+    
+    # Add LLM tags if enabled
+    if cfg.tags.use_llm:
+        llm_tags = get_llm_tags(artist_name, track_title)
+        tags_set.update(llm_tags)
+    
+    # Add Last.FM tags
     for tags in [track_tags, album_tags, artist_tags]:
         for tag_obj in tags[0:min(num, len(tags) - 1)]:
-                
             tag = tag_obj.item.get_name().lower()
-
             if tag == artist_name.lower():
                 continue
             if tag == track_title.lower():
                 continue
             tags_set.add(tag)
+            
     if existing_tags:
         tags_set.update(item.strip().lower() for item in re.split('[,/]', existing_tags))
     if existing_genre:
@@ -724,3 +755,59 @@ def process_lastfm_tags(
 
 def tags_list_to_str_list(tags: List[pylast.TopItem]) -> List[str]:
     return [tag.item.get_name() for tag in tags]
+
+
+def get_llm_tags(artist: str, title: str) -> List[str]:
+    """Get music tags from LLM service.
+    
+    Args:
+        artist: Artist name
+        title: Track title
+        
+    Returns:
+        List of tags or empty list if request failed
+    """
+    try:
+        message = f"{artist} - {title}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {'message': message}
+        
+        log.debug(f"Requesting LLM tags for: {message}")
+        
+        response = requests.post(
+            cfg.tags.llm_url,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            log.warning(f"LLM service returned HTTP {response.status_code}")
+            return []
+            
+        response_data = response.json()
+        tags_string = response_data.get('output')
+        
+        if not tags_string:
+            log.warning("LLM service returned empty tags")
+            return []
+            
+        # Convert comma-separated string to list and clean up tags
+        tags = [
+            tag.strip().lower() 
+            for tag in tags_string.split(',')
+            if tag.strip()
+        ]
+        
+        log.debug(f"LLM tags received: {tags}")
+        return tags
+        
+    except requests.exceptions.RequestException as e:
+        log.error(f"Failed to connect to LLM service: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        log.error(f"Failed to parse LLM response: {e}")
+        return []
+    except Exception as e:
+        log.error(f"Unexpected error getting LLM tags: {e}")
+        return []

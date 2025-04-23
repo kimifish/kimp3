@@ -8,8 +8,9 @@ for representing audio metadata, file operations, and configuration options.
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Set, Dict
 import logging
+from abc import ABC, abstractmethod
 
 from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
@@ -153,7 +154,7 @@ class AudioTags:
 
 class UsualFile:
     """Base class for handling regular files."""
-    def __init__(self, filepath: str | Path, song_dir):
+    def __init__(self, filepath: str | Path, song_dir: 'AbstractSongDir'):
         self._filepath = Path(filepath)
         self.path = self._filepath.parent
         self.name = self._filepath.name
@@ -185,3 +186,73 @@ class UsualFile:
 
     def print_changes(self) -> None:
         print(f"{self.filepath} ---> {self.new_filepath}")
+
+
+class AbstractSongDir(ABC):
+    """Abstract base class for directory containing audio files.
+    
+    Defines the interface that all song directory implementations must follow.
+    
+    Attributes:
+        path (Path): Directory path
+        audio_files (list[AudioFile]): List of audio files in the directory
+        common_files (list[UsualFile]): Common album-related files (artwork, etc)
+        is_album (bool): Whether directory represents an album
+        is_compilation (bool): Whether directory is a compilation
+        album_title (str): Album title if is_album
+        album_artist (str): Album artist if is_album
+        track_count (int): Total number of tracks
+    """
+    
+    def __init__(self, scan_path: str | Path):
+        self.path = Path(scan_path)
+        self.audio_files: List['AudioFile'] = []
+        self.common_files: List['UsualFile'] = []
+        
+        # Album-related attributes
+        self.is_album: bool = False
+        self.is_compilation: bool = False
+        self.album_title: Optional[str] = None
+        self.album_artist: Optional[str] = None
+        self.track_count: Optional[int] = None
+
+    @abstractmethod
+    def _scan_directory(self) -> None:
+        """Scan directory for audio files and common album files."""
+        pass
+
+    @abstractmethod
+    def _analyze_directory(self) -> None:
+        """Analyze directory contents to determine if it's an album/compilation."""
+        pass
+
+    @abstractmethod
+    def _count_tracks(self) -> None:
+        """Count total tracks in album based on track numbers and file count."""
+        pass
+
+    @abstractmethod
+    def process_files(self, operation: 'FileOperation') -> None:
+        """Process all files in directory."""
+        pass
+
+    @abstractmethod
+    def fetch_tags(self) -> Dict:
+        """Check and correct tags for all songs in directory."""
+        pass
+
+    @abstractmethod
+    def gather_tag_values(self, tag_name: str) -> Set[str]:
+        """Gather unique values of specified tag from all audio files."""
+        pass
+
+    @abstractmethod
+    def write_tags(self) -> tuple:
+        """Write tags to all audio files in directory."""
+        pass
+
+    @property
+    @abstractmethod
+    def stats(self) -> Dict:
+        """Get directory statistics."""
+        pass

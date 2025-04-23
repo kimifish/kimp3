@@ -11,23 +11,16 @@ from rich.pretty import pretty_repr
 from typing import List, Set, Optional, Dict
 from kimp3.config import cfg, APP_NAME
 from kimp3.checks import test_is_album, test_is_compilation
-from kimp3.models import FileOperation
+from kimp3.models import AbstractSongDir, FileOperation
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
-class SongDir:
-    """Represents a directory containing audio files and manages their organization.
+class SongDir(AbstractSongDir):
+    """Concrete implementation of song directory management.
     
-    Attributes:
-        path (Path): Directory path
-        audio_files (list[AudioFile]): List of audio files in the directory
-        common_files (list[Path]): Common album-related files (artwork, etc)
-        is_album (bool): Whether directory represents an album
-        is_compilation (bool): Whether directory is a compilation
-        album_title (str): Album title if is_album
-        album_artist (str): Album artist if is_album
-        track_count (int): Total number of tracks
+    Implements all abstract methods defined in AbstractSongDir for scanning,
+    analyzing and processing audio files in a directory.
     """
     
     def __init__(self, scan_path: str | Path, parent=None):
@@ -35,18 +28,10 @@ class SongDir:
         
         Args:
             scan_path: Directory path to scan
+            parent: Optional parent scanner reference
         """
-        self.path = Path(scan_path)
+        super().__init__(scan_path)
         self.parent = parent
-        self.audio_files: List[AudioFile] = []
-        self.common_files: List[UsualFile] = []
-        
-        # Album-related attributes
-        self.is_album: bool = False
-        self.is_compilation: bool = False
-        self.album_title: Optional[str] = None
-        self.album_artist: Optional[str] = None
-        self.track_count: Optional[int] = None
 
         self._scan_directory()
         self._analyze_directory()
