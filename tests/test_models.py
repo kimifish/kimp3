@@ -1,9 +1,6 @@
 import pytest
 from pathlib import Path
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3
-from mutagen import File
-from kimp3.models import AudioTags, AudioFile, FileOperation
+from kimp3.models import AudioTags, FileOperation, Lyrics, TrackNumber, UsualFile
 
 class MockMutagenFile:
     """Mock класс для имитации mutagen.File"""
@@ -48,6 +45,7 @@ class TestAudioTags:
         assert tags.artist == ""
         assert tags.album == ""
         assert tags.track_number is None
+        assert isinstance(tags.track, TrackNumber)
         assert tags.year is None
 
     def test_from_mutagen_complete(self, complete_tags_dict):
@@ -64,6 +62,25 @@ class TestAudioTags:
         assert tags.disc_number == 1
         assert tags.year == 2023
         assert tags.genre == "Rock"
+        assert tags.genres == ["Rock"]
+
+    def test_compilation_zero_is_false(self, minimal_tags_dict):
+        tags_dict = minimal_tags_dict.copy()
+        tags_dict['compilation'] = ['0']
+        mock_file = MockMutagenFile(tags_dict)
+
+        tags = AudioTags.from_mutagen(mock_file)
+
+        assert tags.compilation is False
+
+    def test_audio_tags_normalizes_lists_rating_and_lyrics(self):
+        tags = AudioTags(genre="Rock, Pop", lastfm_tags="seen live, indie", rating="Rating: 80", lyrics=" words ")
+
+        assert tags.genres == ["Rock", "Pop"]
+        assert tags.lastfm_tags == ["seen live", "indie"]
+        assert tags.rating == 80
+        assert isinstance(tags.lyrics, Lyrics)
+        assert tags.lyrics.text == "words"
 
     def test_from_mutagen_minimal(self, minimal_tags_dict):
         """Тест создания AudioTags из минимального набора тегов"""
@@ -115,26 +132,26 @@ class TestAudioTags:
         assert tags.track_number == expected_number
         assert tags.total_tracks == expected_total
 
-class TestAudioFile:
-    def test_create_audio_file(self):
-        """Тест создания AudioFile"""
+class TestUsualFile:
+    def test_create_usual_file(self):
+        """Тест создания UsualFile"""
         path = Path("/test/path/song.mp3")
-        tags = AudioTags(title="Test Song", artist="Test Artist")
-        audio_file = AudioFile(path=path, tags=tags)
+        usual_file = UsualFile(filepath=path, song_dir=None)
 
-        assert audio_file.path == path
-        assert audio_file.tags == tags
-        assert audio_file.new_path is None
+        assert usual_file.filepath == path
+        assert usual_file.path == path.parent
+        assert usual_file.name == path.name
 
-    def test_create_audio_file_with_new_path(self):
-        """Тест создания AudioFile с new_path"""
+    def test_set_new_filepath(self):
+        """Тест установки нового пути"""
         path = Path("/test/path/song.mp3")
         new_path = Path("/new/path/song.mp3")
-        tags = AudioTags(title="Test Song", artist="Test Artist")
-        audio_file = AudioFile(path=path, tags=tags, new_path=new_path)
+        usual_file = UsualFile(filepath=path, song_dir=None)
+        usual_file.new_filepath = new_path
 
-        assert audio_file.path == path
-        assert audio_file.new_path == new_path
+        assert usual_file.new_filepath == new_path
+        assert usual_file.new_path == new_path.parent
+        assert usual_file.new_name == new_path.name
 
 class TestFileOperation:
     def test_file_operation_values(self):
@@ -142,6 +159,7 @@ class TestFileOperation:
         assert FileOperation.COPY.value == "copy"
         assert FileOperation.MOVE.value == "move"
         assert FileOperation.NONE.value == "none"
+        assert FileOperation.AUTO.value == "auto"
 
     def test_file_operation_comparison(self):
         """Тест сравнения значений FileOperation"""

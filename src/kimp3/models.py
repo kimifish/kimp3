@@ -6,14 +6,14 @@ for representing audio metadata, file operations, and configuration options.
 """
 
 from enum import Enum
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Set, Dict
+from typing import Literal, Optional, List, Set, Dict
 import logging
 from abc import ABC, abstractmethod
 
 from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 #from kimp3.config import APP_NAME
 APP_NAME = 'kimp3'
@@ -23,6 +23,7 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 class FileOperation(Enum):
     """Enum for file operations."""
+    AUTO = "auto"
     COPY = "copy"
     MOVE = "move"
     NONE = "none"
@@ -48,34 +49,263 @@ class FileOperation(Enum):
                 f"Invalid operation '{value}'. Must be one of: {', '.join(valid_values)}"
             )
 
-@dataclass
-class AudioTags:
+class TrackNumber(BaseModel):
+    """Track number and optional total."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    number: int | None = None
+    total: int | None = None
+
+    @field_validator("number", "total")
+    @classmethod
+    def normalize_positive(cls, value: int | None) -> int | None:
+        return value if value is not None and value > 0 else None
+
+
+class DiscNumber(BaseModel):
+    """Disc number and optional total."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    number: int | None = None
+    total: int | None = None
+
+    @field_validator("number", "total")
+    @classmethod
+    def normalize_positive(cls, value: int | None) -> int | None:
+        return value if value is not None and value > 0 else None
+
+
+class Artwork(BaseModel):
+    """Embedded front-cover artwork."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    data: bytes
+    mime: str = "image/jpeg"
+    kind: Literal["front"] = "front"
+
+
+class Lyrics(BaseModel):
+    """Embedded lyrics."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    text: str
+    language: str = "eng"
+    description: str = ""
+
+
+def _split_tag_list(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.replace("/", ",").split(",") if item.strip()]
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return [str(value).strip()] if str(value).strip() else []
+
+
+class AudioTags(BaseModel):
     """Model for storing audio file tags."""
+
+    model_config = ConfigDict(validate_assignment=True, extra="forbid")
+
     title: str = ""
     artist: str = ""
     album: str = ""
     album_artist: str = ""
-    track_number: Optional[int] = None
-    total_tracks: Optional[int] = None
-    disc_number: Optional[int] = None
-    total_discs: Optional[int] = None
+    track: TrackNumber = Field(default_factory=TrackNumber)
+    disc: DiscNumber = Field(default_factory=DiscNumber)
     year: Optional[int] = None
-    genre: str = ""
-    lastfm_tags: str = ""
+    genres: list[str] = Field(default_factory=list)
+    lastfm_tags: list[str] = Field(default_factory=list)
     comment: str = ""
     compilation: bool = False
-    rating: str = ""
-    album_cover: Optional[bytes] = None
-    album_cover_mime: str = "image/jpeg"
-    lyrics: Optional[str] = None
+    rating: int | None = None
+    artwork: Artwork | None = None
+    lyrics: Lyrics | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_legacy_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        if any(key in data for key in ("track_number", "total_tracks")):
+            data.setdefault("track", {})
+            if not isinstance(data["track"], dict):
+                data["track"] = {}
+            data["track"].setdefault("number", data.pop("track_number", None))
+            data["track"].setdefault("total", data.pop("total_tracks", None))
+        if any(key in data for key in ("disc_number", "total_discs")):
+            data.setdefault("disc", {})
+            if not isinstance(data["disc"], dict):
+                data["disc"] = {}
+            data["disc"].setdefault("number", data.pop("disc_number", None))
+            data["disc"].setdefault("total", data.pop("total_discs", None))
+        if "genre" in data and "genres" not in data:
+            data["genres"] = data.pop("genre")
+        if "album_cover" in data and data.get("album_cover") is not None and "artwork" not in data:
+            data["artwork"] = {
+                "data": data.pop("album_cover"),
+                "mime": data.pop("album_cover_mime", "image/jpeg") or "image/jpeg",
+            }
+        else:
+            data.pop("album_cover", None)
+            data.pop("album_cover_mime", None)
+        if isinstance(data.get("lyrics"), str):
+            text = data["lyrics"].strip()
+            data["lyrics"] = {"text": text} if text else None
+        return data
+
+    @field_validator("title", "artist", "album", "album_artist", "comment", mode="before")
+    @classmethod
+    def normalize_string(cls, value: object) -> str:
+        return "" if value is None else str(value).strip()
+
+    @field_validator("genres", "lastfm_tags", mode="before")
+    @classmethod
+    def normalize_tag_list(cls, value: object) -> list[str]:
+        return _split_tag_list(value)
+
+    @field_validator("year", mode="before")
+    @classmethod
+    def normalize_year(cls, value: object) -> int | None:
+        if value in (None, ""):
+            return None
+        try:
+            year = int(str(value)[:4])
+        except (TypeError, ValueError):
+            return None
+        return year if 1000 <= year <= 2100 else None
+
+    @field_validator("compilation", mode="before")
+    @classmethod
+    def normalize_bool(cls, value: object) -> bool:
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "y"}
+
+    @field_validator("rating", mode="before")
+    @classmethod
+    def normalize_rating(cls, value: object) -> int | None:
+        if value in (None, ""):
+            return None
+        try:
+            rating = int(str(value).replace("Rating:", "").strip())
+        except (TypeError, ValueError):
+            return None
+        return rating if 0 <= rating <= 100 else None
+
+    @property
+    def track_number(self) -> Optional[int]:
+        return self.track.number
+
+    @track_number.setter
+    def track_number(self, value: Optional[int]) -> None:
+        self.track.number = value
+
+    @property
+    def total_tracks(self) -> Optional[int]:
+        return self.track.total
+
+    @total_tracks.setter
+    def total_tracks(self, value: Optional[int]) -> None:
+        self.track.total = value
+
+    @property
+    def disc_number(self) -> Optional[int]:
+        return self.disc.number
+
+    @disc_number.setter
+    def disc_number(self, value: Optional[int]) -> None:
+        self.disc.number = value
+
+    @property
+    def total_discs(self) -> Optional[int]:
+        return self.disc.total
+
+    @total_discs.setter
+    def total_discs(self, value: Optional[int]) -> None:
+        self.disc.total = value
+
+    @property
+    def genre(self) -> str:
+        return ", ".join(self.genres)
+
+    @genre.setter
+    def genre(self, value: str | list[str]) -> None:
+        self.genres = _split_tag_list(value)
+
+    @property
+    def lastfm_tags_text(self) -> str:
+        return ", ".join(self.lastfm_tags)
+
+    @property
+    def album_cover(self) -> Optional[bytes]:
+        return self.artwork.data if self.artwork else None
+
+    @album_cover.setter
+    def album_cover(self, value: Optional[bytes]) -> None:
+        self.artwork = Artwork(data=value, mime=self.album_cover_mime) if value else None
+
+    @property
+    def album_cover_mime(self) -> str:
+        return self.artwork.mime if self.artwork else "image/jpeg"
+
+    @album_cover_mime.setter
+    def album_cover_mime(self, value: str) -> None:
+        if self.artwork:
+            self.artwork.mime = value or "image/jpeg"
+
+    @property
+    def lyrics_text(self) -> Optional[str]:
+        return self.lyrics.text if self.lyrics else None
+
+    @property
+    def lyrics_legacy(self) -> Optional[str]:
+        return self.lyrics_text
+
+    def managed_fingerprint(self) -> tuple[object, ...]:
+        """Return KiMP3-managed fields used for no-op detection and verify."""
+        return (
+            self.title,
+            self.artist,
+            self.album,
+            self.album_artist,
+            self.track_number,
+            self.total_tracks,
+            self.disc_number,
+            self.total_discs,
+            self.year,
+            tuple(self.genres),
+            self.comment,
+            self.compilation,
+            self.rating,
+            tuple(self.lastfm_tags),
+            self.album_cover,
+            self.album_cover_mime if self.album_cover else None,
+            self.lyrics.model_dump() if self.lyrics else None,
+        )
+
+    def managed_equals(self, other: 'AudioTags') -> bool:
+        """Compare only fields KiMP3 intentionally manages."""
+        return self.managed_fingerprint() == other.managed_fingerprint()
 
     @classmethod
-    def from_mutagen(cls, easy_tags: EasyID3, id3: ID3) -> 'AudioTags':
+    def from_mutagen(cls, easy_tags: EasyID3 | object | None, id3: ID3 | None = None) -> 'AudioTags':
         """Creates AudioTags object from EasyID3 and ID3."""
+        if easy_tags is None:
+            return cls()
+        if id3 is None and hasattr(easy_tags, "tags"):
+            easy_tags = easy_tags.tags
+
         def get_tag_value(key: str) -> str:
             try:
                 return easy_tags.get(key, [''])[0]
-            except (IndexError, KeyError):
+            except (AttributeError, IndexError, KeyError, TypeError):
                 return ''
 
         # Extract all needed frames in one pass
@@ -84,10 +314,10 @@ class AudioTags:
         cover_mime = "image/jpeg"
         comments = {}
 
-        # Get frames directly
-        uslt_frames = id3.getall('USLT')
-        apic_frames = id3.getall('APIC')
-        comm_frames = id3.getall('COMM')
+        # Get frames directly when full ID3 data is available.
+        uslt_frames = id3.getall('USLT') if id3 is not None else []
+        apic_frames = id3.getall('APIC') if id3 is not None else []
+        comm_frames = id3.getall('COMM') if id3 is not None else []
 
         # Get lyrics from first USLT frame if exists
         if uslt_frames:
@@ -119,7 +349,7 @@ class AudioTags:
             year=cls._parse_year(get_tag_value('date')),
             genre=get_tag_value('genre'),
             comment=get_tag_value('comment'),
-            compilation=bool(get_tag_value('compilation')),
+            compilation=cls._parse_bool(get_tag_value('compilation')),
             lastfm_tags=comments.get('LastFM tags', '').replace('LastFM tags: ', ''),
             rating=comments.get('Rating', '').replace('Rating: ', ''),
             album_cover=cover_data,
@@ -136,6 +366,10 @@ class AudioTags:
         try:
             number = int(parts[0]) if parts[0] else None
             total = int(parts[1]) if len(parts) > 1 and parts[1] else None
+            if number is not None and number <= 0:
+                number = None
+            if total is not None and total <= 0:
+                total = None
             return number, total
         except (ValueError, IndexError):
             return None, None
@@ -150,6 +384,11 @@ class AudioTags:
             return int(value[:4])
         except (ValueError, IndexError):
             return None
+
+    @staticmethod
+    def _parse_bool(value: str) -> bool:
+        """Parse tag booleans without treating '0' as true."""
+        return value.strip().lower() in {"1", "true", "yes", "y"}
 
 
 class UsualFile:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kimp3"
-version = "0.4.0"
+version = "1.0.0"
 description = "Self-contained music library manager that embeds metadata directly in audio files"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,6 +26,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
+    "cyberlog>=0.2.1",
     # Audio file handling
     "mutagen>=1.47.0",        # Low-level audio metadata
     "music-tag>=0.4.3",       # High-level tag manipulation
@@ -41,7 +42,8 @@ dependencies = [
     
     # Configuration
     "python-dotenv>=1.0.0",   # API keys in .env
-    "kimiconfig>=0.1.0",      # YAML config
+    "pydantic>=2.0",          # Configuration schemas
+    "pyyaml>=6.0",            # YAML config loading
     
     # CLI interface
     "rich>=13.9.4",           # Console output formatting
@@ -70,10 +72,21 @@ Issues = "https://github.com/kimifish/kimp3/issues"
 Source = "https://github.com/kimifish/kimp3"
 
 [project.scripts]
-kimp3 = "kimp3.__main__:main"
+kimp3 = "kimp3.__main__:entry_point"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/kimp3"]
 
 [tool.hatch.version]
 path = "src/kimp3/__init__.py"
+
+[tool.uv]
+allow-insecure-host = ["kimihome.lan:58080"]
+
+[tool.uv.sources]
+cyberlog = { index = "kimihome" }
+
+[[tool.uv.index]]
+name = "kimihome"
+url = "http://kimihome.lan:58080/simple"
+explicit = true

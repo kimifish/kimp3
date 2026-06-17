@@ -3,7 +3,6 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
-import kimp3.file_operations as file_operations
 from kimp3.interface.utils import yes_or_no
 from kimp3.song import AudioFile, UsualFile
 from pathlib import Path
@@ -12,6 +11,7 @@ from typing import List, Set, Optional, Dict
 from kimp3.config import cfg, APP_NAME
 from kimp3.checks import test_is_album, test_is_compilation
 from kimp3.models import AbstractSongDir, FileOperation
+from kimp3.planning import PathPlan, score_candidate, validate_audio_plans, validate_operation_plans
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
@@ -97,13 +97,34 @@ class SongDir(AbstractSongDir):
 
         for audio_file in self.audio_files:
             audio_file.calculate_new_paths_from_tags()
-            if operation == FileOperation.COPY:
-                file_operations.files_to_copy.append(audio_file)
-            elif operation == FileOperation.MOVE:
-                file_operations.files_to_move.append(audio_file)
-        
-            for genre_path in audio_file.genre_paths:
-                file_operations.files_to_create_link.append([str(audio_file.new_filepath), str(genre_path)])
+            _ = getattr(audio_file, "planned_operation", operation)
+        self._resolve_duplicate_track_numbers()
+
+    def _resolve_duplicate_track_numbers(self) -> None:
+        """Warn and clear track number for weaker duplicate track-number candidates."""
+        groups = {}
+        for audio_file in self.audio_files:
+            plan = audio_file.operation_plan
+            if not plan or not audio_file.tags.track_number:
+                continue
+            key = (plan.path.target_path.parent, audio_file.tags.disc_number, audio_file.tags.track_number)
+            groups.setdefault(key, []).append(audio_file)
+        for (_album_dir, _disc, track_number), files in groups.items():
+            if len(files) <= 1:
+                continue
+            winner = max(files, key=lambda item: score_candidate(item.filepath, item.tags).score)
+            for audio_file in files:
+                if audio_file is winner:
+                    continue
+                warning = (
+                    f"Duplicate track number {track_number}; clearing track number for weaker candidate "
+                    f"{audio_file.filepath}"
+                )
+                log.warning(warning)
+                audio_file.tags.track_number = None
+                audio_file.calculate_new_paths_from_tags()
+                if audio_file.operation_plan:
+                    audio_file.operation_plan.warnings.append(warning)
 
     def _process_common_files(self, operation: FileOperation) -> None:
         """Process common album files like artwork.
@@ -113,6 +134,7 @@ class SongDir(AbstractSongDir):
         """
         if not self.common_files or not self.audio_files:
             return
+        resolved_operation = getattr(self.audio_files[0], "planned_operation", operation)
             
         # Get target directory from first audio file that has new_filepath
         target_dir = None
@@ -128,10 +150,7 @@ class SongDir(AbstractSongDir):
         for common_file in self.common_files:
             common_file.new_filepath = target_dir / common_file.name
             
-            if operation == FileOperation.COPY:
-                file_operations.files_to_copy.append(common_file)
-            elif operation == FileOperation.MOVE:
-                file_operations.files_to_move.append(common_file)
+            _ = resolved_operation
 
     def process_files(self, operation: FileOperation) -> None:
         """Process all files in directory.
@@ -143,6 +162,23 @@ class SongDir(AbstractSongDir):
         self._process_audio_files(operation)
         # Then process common files using the calculated paths
         self._process_common_files(operation)
+
+    def validate_plans(self) -> list[str]:
+        """Validate planned audio operations before filesystem writes."""
+        operation_plans = [audio_file.operation_plan for audio_file in self.audio_files if audio_file.operation_plan]
+        if operation_plans:
+            return validate_operation_plans(operation_plans)
+        plans = [
+            PathPlan(
+                source_path=audio_file.filepath,
+                target_path=audio_file.new_filepath,
+                genre_links=audio_file.genre_paths,
+                operation=getattr(audio_file, "planned_operation", cfg.scan.operation),
+            )
+            for audio_file in self.audio_files
+            if audio_file.new_filepath
+        ]
+        return validate_audio_plans(plans)
 
     def fetch_tags(self):
         """Check and correct tags for all songs in directory."""
@@ -181,6 +217,19 @@ class SongDir(AbstractSongDir):
         answer = 'y'
         
         for audio_file in self.audio_files:
+            if getattr(audio_file, "skip_tag_write", False):
+                audio_file.tag_write_success = True
+                skips += 1
+                continue
+            if getattr(audio_file, "planned_operation", None) == FileOperation.NONE:
+                audio_file.tag_write_success = True
+                skips += 1
+                continue
+            if cfg.dry_run:
+                audio_file.tag_write_success = True
+                log.info(f"Dry run - would write tags to {audio_file.filepath}")
+                skips += 1
+                continue
             if interactive:
                 audio_file.print_changes(show_tags=True, show_cover=True, show_lyrics=True)
                 answer = yes_or_no("Write tags?", "yYnN")
@@ -189,12 +238,15 @@ class SongDir(AbstractSongDir):
                 interactive = False
 
             if answer.lower() == 'n':
+                audio_file.tag_write_success = False
                 skips += 1
                 continue
 
             if audio_file.write_tags():
+                audio_file.tag_write_success = True
                 successes += 1
             else:
+                audio_file.tag_write_success = False
                 failures += 1
         
         if successes > 0:

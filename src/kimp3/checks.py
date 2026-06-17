@@ -26,6 +26,8 @@ def test_is_album(album):
 
     if len(album_title_set) > 1:
         is_album = False
+    elif not album_title_set:
+        is_album = False
     else:
         album_title = album_title_set.pop()
 

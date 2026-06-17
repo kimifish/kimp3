@@ -2,8 +2,12 @@
 KiMP3 - Self-contained music library manager
 """
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"
 
-from kimp3.main import main
+
+def main() -> int:
+    from kimp3.main import main as run_main
+
+    return run_main()
 
 __all__ = ["main", "__version__"]

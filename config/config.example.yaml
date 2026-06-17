@@ -1,13 +1,15 @@
-#               Configuration kimp3 file
+# KiMP3 configuration example
 
-# Print summary of changes and ask question before changing
+# Ask before changing files.
 interactive: True
+
+# Preview plan only. Must not change filesystem or tags.
 dry_run: False
 
 scan:
-  # List of directories to scan
+  # Directories to scan.
   dir_list:
-  # - '/media/kimifish/MediaStore/Музыка
+  # - '/media/kimifish/MediaStore/Музыка'
   # - /home/kimifish/Downloads
   # - '/home/pi/Downloads'
   # - '/home/kimifish/kimiside@gmail.com/Music/Песенник'
@@ -18,20 +20,47 @@ scan:
   # - '/home/kimifish/Downloads/VHS Glitch/albums/2016 - Demoniac'
   # - '/junk/kimiside@gmail.com/Music/Песенник'
 
-  # Directory names to skip while parsing:
+  # Directory names to skip while scanning.
   skip_dirs: ['.unwanted', '.AppleDouble']
 
-  # Empty directory deletion
+  # Delete empty source directories after successful move operations.
   delete_empty_dirs: True
 
-  # Files to skip while parsing and to delete while moving:
-  skip_files: ['.some_useless_file']
+  # Exact junk filenames that may be deleted during cleanup before empty-dir removal.
+  # Keep this list conservative: do not add useful artwork such as cover/front images.
+  junk_files:
+    - '.DS_Store'
+    - 'Thumbs.db'
+    - 'desktop.ini'
+    - 'ehthumbs.db'
+    - 'AlbumArtSmall.jpg'
 
-  # Extensions for files to scan
+  # Audio extensions to scan.
   valid_extensions: ['.mp3', '.flac']
 
-  # Move or copy by default. For modifying tags in place use 'none':
-  move_or_copy: 'copy'
+  # Operation mode:
+  # - auto: external scan dirs copy into collection; collection files move/rename in place.
+  # - copy: always copy into collection and write tags only to the copy.
+  # - move: move/rename files; external move requires force_external_move=true.
+  # - none: report only, no file/tag changes.
+  operation: 'auto'
+
+  # Allow moving files from outside collection.directory.
+  force_external_move: False
+
+  # Conflict policy:
+  # - keep-best: default; score candidates and keep better file/library target.
+  # - fail: fail conflicting plans.
+  # - skip: skip conflicting plans.
+  # - suffix: add numeric suffix to conflicting target path.
+  # - replace: replace existing target only with force_replace=true.
+  conflict_policy: 'keep-best'
+
+  # Required for conflict_policy=replace.
+  force_replace: False
+
+  # Allow planned genre symlink creation in operation=none.
+  create_symlinks_in_none: False
 
   # Common album filenames to be copied/moved with albums.
   common_files:
@@ -44,7 +73,7 @@ scan:
     - 'front.jpeg'
 
 collection:
-  # Main Music Collection Directory
+  # Main music collection directory.
   directory: '/home/kimifish/Music'
 
   # Check, if album is a compilation by comparing artists of each song
@@ -55,33 +84,23 @@ collection:
   # to treat it as a compilation.
   compilation_coef: 0.5
 
-  # Create symlinks to files in genre folders
+  # Create symlinks to files in genre folders.
   create_genre_links: True
 
-  # Clean broken symlinks
+  # Clean broken symlinks inside managed genre directory.
   clean_symlinks: True
 
 paths:
-  # Patterns for creating folders relative to Music Collection Directory
+  # Patterns for creating paths relative to collection.directory.
   #           • %album_title                  • %song_title
   #           • %album_artist                 • %song_artist
   #           • %num_of_tracks                • %genre
   #           • %track_num                    • %year
-  #           • %disc_num
+  #           • %disc_num                     • %ext
   patterns:
-    album: '%album_artist/%year - %album_title (CD%disc_num)/%track_num. %song_title.mp3'
-    compilation: '_Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.mp3'
-    genre: '_Жанры/%genre/%year. %song_artist - %song_title.mp3'
-
-  # Cut empty tags with surrounding symbols from path pattern
-  cut_empty_tags: True
-
-  # Cut year tag from path if there is no album title. (Things like …/1982/… to …/…)
-  # Works only if cut_empty_tags_from_path above is «yes».
-  cut_year_only_folders: True
-
-  # Artist tags, that are considered to be non-valid. Lowercase
-  bad_artists: ['unknown artist', 'unknown', 'неизвестный исполнитель', 'неизвестный артист']
+    album: '%album_artist/%year - %album_title (CD%disc_num)/%track_num. %song_title.%ext'
+    compilation: '_Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.%ext'
+    genre: '_Жанры/%genre/%year. %song_artist - %song_title.%ext'
 
   cache_dir: '/home/kimifish/.cache/kimp3'
 
@@ -97,11 +116,10 @@ tags:
   skip_existing_cover: True
   skip_existing_lyrics: True
 
-  # You have to have your own unique two values for API_KEY and API_SECRET
-  # Obtain yours from http://www.last.fm/api/account for Last.fm
+  # You need API_KEY and API_SECRET from https://www.last.fm/api/account.
+  # Use .env to read from LASTFM_API_KEY / LASTFM_API_SECRET etc.
   lastfm_api_key: .env
   lastfm_api_secret: .env
-  discogs_token: .env
   genius_token: .env
 
   # In order to perform a write operation you need to authenticate yourself
@@ -109,8 +127,8 @@ tags:
   lastfm_username: .env
   lastfm_password_hash: .env
 
-  # Autocorrection of artist, album and track names
-  autocorrection: True
+  # Maximum Last.FM tag length.
+  max_length: 50
 
   # Move «The» from beginning to the end of artist name. The Beatles → Beatles, the
   # Or just remove it. Or leave. 'leave', 'move' or 'remove'
@@ -156,7 +174,7 @@ tags:
     'symphonic metal', 'synth pop', 'synthwave', 'tango', 'tech house', 'techno', 
     'teen pop', 'thrash metal', 'trance', 'trap', 'tribal house', 'trip hop', 
     'tropicália', 'turntablism', 'uk garage', 'vaporwave', 'viking metal', 'vocal jazz', 
-    'west coast hip hop', 'western swing', 'world', 'zouk', 'zydeco',
+    'west coast hip hop', 'western swing', 'world music', 'zouk', 'zydeco',
     ]
 
   # Tags below won't be added to id3 tag list and genres.
@@ -272,7 +290,8 @@ tags:
   - ['r&b', '(?:r\sand\sb|rhythm\sand\sblues|rnb)']
   - ['classical', 'classical\smusic']
   - ['country', '(?:country\smusic|country\sand\swestern)']
-  - ['folk', 'folc']
+  - ['folk', 'fol[ck](?:|\smusic)']
+  - ['world music', 'world']
 
   # Recording types
   - ['live', '(?:live\sperformance|concert\srecording)']
@@ -295,14 +314,3 @@ tags:
   # LLM service configuration
   use_llm: True
   llm_url: "http://kimipc.lan:8000/music_machine"
-
-logging:
-  level: "DEBUG"
-  loggers:
-    suppress:
-      - "httpx"
-      - "httpcore"
-      - "mutagen"
-      - "pylast"
-      - "urllib3.connectionpool"
-    suppress_level: "WARNING"

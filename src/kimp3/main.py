@@ -8,14 +8,18 @@ import sys
 from datetime import datetime
 from typing import List, Dict, Tuple, Callable
 from rich.pretty import pretty_repr
-import kimp3.file_operations as file_operations
 from kimp3.config import cfg, APP_NAME, HOME_DIR
+from kimp3.config_loader import load_logging_config
+from kimp3.executor import OperationExecutor
+from kimp3.logging_setup import setup_logging
+from kimp3.reporting import ExecutionReporter, PlanReporter
 from kimp3.songdir import SongDir
 from kimp3.tags import init_lastfm, get_cache_stats, clear_cache
 from kimp3.interface.utils import sep_with_header
 
+setup_logging(load_logging_config(cfg, APP_NAME))
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
-log.info('•' + str(datetime.today()) + ' Starting…')
+log.info("`startup` " + str(datetime.today()) + " Starting...")
 
 
 class ScanDir:
@@ -87,7 +91,7 @@ class ScanDir:
         """
         changes = {}
         for directory in self.directories_list:
-            changes[str(directory.path)] = directory.check_tags()
+            changes[str(directory.path)] = directory.fetch_tags()
         return changes
     
     def process_by_one(self) -> Dict[str, List[int]]:
@@ -105,9 +109,22 @@ class ScanDir:
             if cfg.tags.fetch_tags:
                 changes = d.fetch_tags()
             d.process_missing_tags_from_local_data()
-            d.process_files(cfg.scan.move_or_copy)
-            file_operations.execute()
-            stats = self._update_stats(d.write_tags, stats)
+            d.process_files(cfg.scan.operation)
+            validation_errors = d.validate_plans()
+            plans = [audio_file.operation_plan for audio_file in d.audio_files if audio_file.operation_plan]
+            if validation_errors:
+                for error in validation_errors:
+                    log.error(error)
+                if cfg.scan.conflict_policy == "fail":
+                    if plans:
+                        PlanReporter().print_interesting_details(plans)
+                    continue
+            if plans and not cfg.dry_run:
+                PlanReporter().print_interesting_details(plans)
+            result = OperationExecutor().execute_song_dir(d)
+            ExecutionReporter().print_result(result, title=f"Execution: {d.path}")
+            stats["write_tags"][0] += result.successes
+            stats["write_tags"][1] += result.failures
         return stats
 
     @staticmethod
@@ -160,9 +177,6 @@ def main():
     Returns:
         int: Exit code (0 for success)
     """
-    if cfg.collection.clean_symlinks:
-        file_operations.build_genre_links_map()
-
     dirs_to_scan = []
     for directory in cfg.scan.dir_list:
         if os.path.isdir(directory):
@@ -183,18 +197,11 @@ def main():
     for directory in dirs_to_scan:
         directory.process_by_one()
 
-    if cfg.collection.clean_symlinks:
-        file_operations.clean_broken_symlinks()
+    OperationExecutor().cleanup_collection([directory.path for directory in dirs_to_scan])
 
     log.debug(f"Cache stats: {pretty_repr(get_cache_stats())}")
     clear_cache()
-    return
-
-    file_operations.execute()
-
-    if cfg.scan.delete_empty_dirs:
-        for directory in dirs_to_scan:
-            file_operations.delete_empty_dirs(directory)
+    return 0
 
 
 if __name__ == '__main__':

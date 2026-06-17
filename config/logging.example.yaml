@@ -1,0 +1,9 @@
+level: "DEBUG"
+loggers:
+  suppress:
+    - "httpx"
+    - "httpcore"
+    - "mutagen"
+    - "pylast"
+    - "urllib3.connectionpool"
+  suppress_level: "WARNING"
