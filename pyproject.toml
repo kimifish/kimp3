@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kimp3"
-version = "1.0.0"
+version = "1.1.0"
 description = "Self-contained music library manager that embeds metadata directly in audio files"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,25 +28,22 @@ classifiers = [
 dependencies = [
     "cyberlog>=0.2.1",
     # Audio file handling
-    "mutagen>=1.47.0",        # Low-level audio metadata
-    "music-tag>=0.4.3",       # High-level tag manipulation
-    
+    "mutagen>=1.47.0", # Low-level audio metadata
+    "music-tag>=0.4.3", # High-level tag manipulation
     # Image processing
-    "pillow>=11.1.0",         # Album cover processing
-    
+    "pillow>=11.1.0", # Album cover processing
     # Music metadata services
-    "pylast>=5.5.0",          # Last.FM API client
-    "python3-discogs-client>=2.8",  # Discogs API client
-    "requests>=2.31.0",       # HTTP client for Genius and cover art
+    "pylast>=5.5.0", # Last.FM API client
+    "python3-discogs-client>=2.8", # Discogs API client
+    "requests>=2.31.0", # HTTP client for Genius and cover art
     "beautifulsoup4>=4.13.3", # Lyrics parsing
-    
     # Configuration
-    "python-dotenv>=1.0.0",   # API keys in .env
-    "pydantic>=2.0",          # Configuration schemas
-    "pyyaml>=6.0",            # YAML config loading
-    
+    "python-dotenv>=1.0.0", # API keys in .env
+    "pydantic>=2.0", # Configuration schemas
+    "pyyaml>=6.0", # YAML config loading
     # CLI interface
-    "rich>=13.9.4",           # Console output formatting
+    "rich>=13.9.4", # Console output formatting
+    "httpx[socks]>=0.28.1",
 ]
 
 [project.optional-dependencies]
