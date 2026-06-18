@@ -13,6 +13,7 @@ from kimp3.config import cfg, APP_NAME
 from kimp3.encoding import repair_audio_tags_text_encoding
 from kimp3.planning import OperationPlan, build_operation_plan
 from kimp3.interface.utils import yes_or_no
+from kimp3.title_case import normalize_audio_tag_titles
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 
@@ -27,6 +28,7 @@ class AudioFile(UsualFile):
         self.tags = self._read_tags()
         self.original_tags = self.tags.model_copy(deep=True)
         self.tags = repair_audio_tags_text_encoding(self.tags)
+        self.tags = normalize_audio_tag_titles(self.tags, cfg.tags)
         self.old_tags = AudioTags()
         self.skip_tag_write = False
         self.tag_write_success = False
@@ -91,6 +93,8 @@ class AudioFile(UsualFile):
                         setattr(self.tags, field, value[4:])
                     elif cfg.tags.the_the == 'move':
                         setattr(self.tags, field, value[4:] + ', the')
+
+            self.tags = normalize_audio_tag_titles(self.tags, cfg.tags)
 
             # Collect changes
             for field in AudioTags.__annotations__:

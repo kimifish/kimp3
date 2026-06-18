@@ -120,6 +120,8 @@ def test_project_example_config_is_valid():
     assert "post-punk" not in settings.tags.genre_parents
     assert settings.tags.genre_parents["post-punk revival"] == "post-punk"
     assert settings.tags.genre_parents["coldwave"] == "dark wave"
+    assert settings.tags.title_normalization == "title_case_safe"
+    assert "AC/DC" in settings.tags.title_case_exceptions
 
 
 def test_load_settings_merges_sibling_tags_yaml(tmp_path):

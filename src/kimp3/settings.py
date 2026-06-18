@@ -118,6 +118,27 @@ class TagsSettings(BaseModel):
     lastfm_password_hash: str | None = None
     max_length: int = 50
     the_the: Literal["leave", "move", "remove"] = "leave"
+    title_normalization: Literal["preserve", "title_case_safe", "aggressive_normalize"] = "title_case_safe"
+    title_case_exceptions: list[str] = Field(
+        default_factory=lambda: [
+            "AC/DC",
+            "R.E.M.",
+            "DJ",
+            "YMCA",
+            "M83",
+            "µ-Ziq",
+            "!!!",
+            "t.A.T.u.",
+            "deadmau5",
+            "blink-182",
+            "will.i.am",
+            "k.d. lang",
+            "спЛин",
+            "ДДТ",
+            "АукцЫон",
+            "Мумий Тролль",
+        ]
+    )
     genres: list[str] = Field(default_factory=list)
     extended_genres: list[str] = Field(default_factory=list)
     genre_parents: dict[str, str] = Field(default_factory=dict)

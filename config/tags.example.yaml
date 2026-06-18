@@ -3,6 +3,26 @@
 
 tags:
   max_length: 50
+  title_normalization: title_case_safe
+  title_case_exceptions:
+    - AC/DC
+    - R.E.M.
+    - DJ
+    - YMCA
+    - M83
+    - µ-Ziq
+    - "!!!"
+    - t.A.T.u.
+    - deadmau5
+    - blink-182
+    - will.i.am
+    - k.d. lang
+    - спЛин
+    - ДДТ
+    - АукцЫон
+    - Мумий Тролль
+    - Zемфира
+    - Король и Шут
   genres:
     - acoustic
     - african
