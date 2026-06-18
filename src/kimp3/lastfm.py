@@ -15,6 +15,7 @@ from kimp3.tag_processing import NUMBER_OF_TAGS, TAG_MIN_WEIGHT, process_lastfm_
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 network: pylast.LastFMNetwork
+LASTFM_ERRORS = (pylast.WSError, pylast.PyLastError)
 
 _artist_corrections: Dict[str, str] = {}
 _album_corrections: Dict[Tuple[str, str], str] = {}
@@ -95,7 +96,7 @@ class TaggedTrack:
             corrected: str = artist.get_correction() or artist.name
             _artist_corrections[artist.name] = corrected
             artist.name = corrected
-        except pylast.WSError:
+        except LASTFM_ERRORS:
             log.warning(f"`network,tags`Last.FM: Artist not found - {artist.name}")
             _artist_corrections[artist.name] = artist.name
         return artist.name
@@ -132,14 +133,14 @@ class TaggedTrack:
                         log.warning(
                             f"`network,tags`Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}"
                         )
-                except pylast.WSError:
+                except LASTFM_ERRORS:
                     log.warning(
                         f"`network,tags`Failed to get track count for album '{best_album.title}'"
                     )
 
             _album_corrections[cache_key] = corrected
             album.title = corrected
-        except pylast.WSError:
+        except LASTFM_ERRORS:
             log.warning(
                 f"`network,tags`Last.FM: Album not found - {self.tags.artist} - {self.tags.album}"
             )
@@ -151,7 +152,7 @@ class TaggedTrack:
             title = track.get_correction() or track.title
             if title == self.artist.name and title != self.tags.title:
                 title = self.tags.title
-        except pylast.WSError:
+        except LASTFM_ERRORS:
             log.warning(
                 f"`network,tags`Last.FM: Track not found - {self.artist.name} - {self.tags.title}"
             )
@@ -239,12 +240,21 @@ class TaggedTrack:
 
 def init_lastfm() -> None:
     global network
-    network = pylast.LastFMNetwork(
-        api_key=cfg.tags.lastfm_api_key,
-        api_secret=cfg.tags.lastfm_api_secret,
-        username=cfg.tags.lastfm_username,
-        password_hash=cfg.tags.lastfm_password_hash,
-    )
+    try:
+        network = pylast.LastFMNetwork(
+            api_key=cfg.tags.lastfm_api_key,
+            api_secret=cfg.tags.lastfm_api_secret,
+            username=cfg.tags.lastfm_username,
+            password_hash=cfg.tags.lastfm_password_hash,
+        )
+    except LASTFM_ERRORS as exc:
+        log.warning(
+            f"`network,tags`Last.FM authenticated login failed, continuing without session: {exc}"
+        )
+        network = pylast.LastFMNetwork(
+            api_key=cfg.tags.lastfm_api_key,
+            api_secret=cfg.tags.lastfm_api_secret,
+        )
     log.info("`network,tags`Last.FM login")
 
 
@@ -259,7 +269,7 @@ def _get_album_tracks(album: pylast.Album) -> List[pylast.Track]:
         tracks = list(album.get_tracks())
         _album_tracks_cache[cache_key] = tracks
         return tracks
-    except pylast.WSError:
+    except LASTFM_ERRORS:
         log.warning(
             f"`network,tags`Last.FM: Failed to get album tracks - {album.artist.name} - {album.title}"
         )
@@ -273,7 +283,7 @@ def _get_artist_albums(artist_name: str) -> List[pylast.TopItem]:
         top_albums = list(network.get_artist(artist_name).get_top_albums())
         _artist_albums_cache[artist_name] = top_albums
         return top_albums
-    except pylast.WSError:
+    except LASTFM_ERRORS:
         log.warning(f"`network,tags`Last.FM: Failed to get artist albums - {artist_name}")
         return []
 
@@ -295,7 +305,7 @@ def _get_tags(
 
     try:
         lastfm_raw_tags = obj.get_top_tags()
-    except pylast.WSError:
+    except LASTFM_ERRORS:
         log.warning("`network,tags`Last.FM: Failed to get tags")
         return []
 
@@ -324,7 +334,7 @@ def get_genre(tags: AudioTags) -> str:
         genre = ", ".join(dict.fromkeys(names[:5])).title()
         _genre_cache[cache_key] = genre
         return genre
-    except pylast.WSError:
+    except LASTFM_ERRORS:
         log.warning(f"`network,tags`Last.FM: Failed to get genre for {tags.artist} - {tags.album}")
         _genre_cache[cache_key] = ""
         return ""

@@ -105,6 +105,7 @@ class TagsSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     fetch_tags: bool = True
+    fetch_workers: int = 4
     fetch_album_cover: bool = True
     fetch_lyrics: bool = True
     skip_existing_tags: bool = True

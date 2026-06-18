@@ -45,6 +45,7 @@ paths:
   cache_dir: /home/kimifish/.cache/kimp3
 tags:
   fetch_tags: true
+  fetch_workers: 4
   fetch_album_cover: true
   fetch_lyrics: true
   skip_existing_tags: true

@@ -3,6 +3,7 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from kimp3.interface.utils import yes_or_no
 from kimp3.song import AudioFile, UsualFile
 from pathlib import Path
@@ -184,8 +185,16 @@ class SongDir(AbstractSongDir):
         """Check and correct tags for all songs in directory."""
         log.info("`network,tags`Fetching tags...")
         changes = {}
-        for audio_file in self.audio_files:
-            changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.fetch_tags()
+        workers = min(max(cfg.tags.fetch_workers, 1), len(self.audio_files) or 1)
+        if workers == 1:
+            for audio_file in self.audio_files:
+                changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.fetch_tags()
+            return changes
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(audio_file.fetch_tags) for audio_file in self.audio_files]
+            for audio_file, future in zip(self.audio_files, futures):
+                changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = future.result()
         return changes
 
     def gather_tag_values(self, tag_name: str) -> Set[str]:
