@@ -30,6 +30,13 @@ def _parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument("-c", "--config", dest="config_file", help="Configuration file location.")
     parser.add_argument("-s", "--scan_dir", type=str, help="Directory to search for MP3 files")
     parser.add_argument("-D", "--dry", help="Dry run", action="store_true")
+    parser.add_argument(
+        "--interactive",
+        dest="interactive",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable or disable interactive confirmations.",
+    )
     return parser.parse_known_args()
 
 
@@ -78,6 +85,8 @@ if args.scan_dir:
     cfg.update("scan.dir_list", [args.scan_dir])
 if args.dry:
     cfg.update("dry_run", True)
+if args.interactive is not None:
+    cfg.update("interactive", args.interactive)
 
 cfg.update("tags.lastfm_api_key", _resolve_env(cfg.tags.lastfm_api_key, "LASTFM_API_KEY"))
 cfg.update("tags.lastfm_api_secret", _resolve_env(cfg.tags.lastfm_api_secret, "LASTFM_API_SECRET"))

@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from kimp3.executor import OperationExecutor
-from kimp3.models import AudioTags, FileOperation
+from kimp3.executor import ExecutionResult, OperationExecutor
+from kimp3.models import AudioTags, FileOperation, UsualFile
 from kimp3.planning import OperationPlan, PathPlan, build_tag_change_plan
 
 
@@ -12,8 +12,12 @@ class FakeBackend:
 
 
 class DummyAudioFile:
-    def __init__(self, source: Path, target: Path, link: Path, requires_tag_write: bool = True):
-        source_tags = AudioTags(title="Old" if requires_tag_write else "Song", artist="Artist")
+    def __init__(
+        self, source: Path, target: Path, link: Path, requires_tag_write: bool = True
+    ):
+        source_tags = AudioTags(
+            title="Old" if requires_tag_write else "Song", artist="Artist"
+        )
         target_tags = AudioTags(title="Song", artist="Artist")
         self.filepath = source
         self.new_filepath = target
@@ -21,7 +25,12 @@ class DummyAudioFile:
         self.tag_write_success = False
         self.write_calls = 0
         self.operation_plan = OperationPlan(
-            path=PathPlan(source_path=source, target_path=target, genre_links=[link], operation=FileOperation.COPY),
+            path=PathPlan(
+                source_path=source,
+                target_path=target,
+                genre_links=[link],
+                operation=FileOperation.COPY,
+            ),
             tags=build_tag_change_plan(source_tags, target_tags),
         )
 
@@ -39,7 +48,9 @@ class DummySongDir:
         self.common_files = []
 
 
-def test_operation_executor_copy_creates_target_symlink_and_verifies(monkeypatch, tmp_path):
+def test_operation_executor_copy_creates_target_symlink_and_verifies(
+    monkeypatch, tmp_path
+):
     source = tmp_path / "incoming" / "song.mp3"
     target = tmp_path / "library" / "Artist" / "song.mp3"
     link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
@@ -48,7 +59,9 @@ def test_operation_executor_copy_creates_target_symlink_and_verifies(monkeypatch
     audio_file = DummyAudioFile(source, target, link)
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (1, 0, 0)
     assert source.read_bytes() == b"audio"
@@ -57,7 +70,12 @@ def test_operation_executor_copy_creates_target_symlink_and_verifies(monkeypatch
     assert audio_file.write_calls == 1
     assert link.is_symlink()
     assert (link.parent / Path(link.readlink())).resolve() == target.resolve()
-    assert OperationExecutor(dry_run=False, interactive=False).verify_audio_file(audio_file) == []
+    assert (
+        OperationExecutor(dry_run=False, interactive=False).verify_audio_file(
+            audio_file
+        )
+        == []
+    )
 
 
 def test_operation_executor_dry_run_creates_nothing(monkeypatch, tmp_path):
@@ -69,7 +87,9 @@ def test_operation_executor_dry_run_creates_nothing(monkeypatch, tmp_path):
     audio_file = DummyAudioFile(source, target, link)
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
 
-    result = OperationExecutor(dry_run=True, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=True, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (0, 0, 1)
     assert not target.exists()
@@ -90,7 +110,9 @@ def test_operation_executor_replaces_existing_when_decided(monkeypatch, tmp_path
     audio_file.operation_plan.replace_existing = True
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (1, 0, 0)
     assert target.read_bytes() == b"better"
@@ -109,7 +131,9 @@ def test_operation_executor_skips_conflict_loser(monkeypatch, tmp_path):
     audio_file.operation_plan.skip_reason = "Conflict: existing target kept"
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (0, 0, 1)
     assert source.read_bytes() == b"source"
@@ -125,10 +149,57 @@ def test_operation_executor_skips_plan_with_errors(tmp_path):
     audio_file = DummyAudioFile(source, target, link, requires_tag_write=False)
     audio_file.operation_plan.errors.append("hard error")
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (0, 1, 0)
     assert not target.exists()
+
+
+def test_common_image_replaces_existing_when_source_is_larger(tmp_path):
+    source = tmp_path / "incoming" / "song.mp3"
+    target = tmp_path / "library" / "Artist" / "Album" / "song.mp3"
+    cover_source = source.parent / "cover.jpg"
+    cover_target = target.parent / "cover.jpg"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    source.parent.mkdir()
+    target.parent.mkdir(parents=True)
+    source.write_bytes(b"audio")
+    cover_source.write_bytes(b"larger-cover")
+    cover_target.write_bytes(b"small")
+    audio_file = DummyAudioFile(source, target, link, requires_tag_write=False)
+    result = ExecutionResult()
+
+    OperationExecutor(dry_run=False, interactive=False)._execute_common_files(
+        [UsualFile(cover_source, song_dir=None)], audio_file, result
+    )
+
+    assert result.errors == []
+    assert cover_target.read_bytes() == b"larger-cover"
+
+
+def test_common_image_keeps_existing_when_source_is_not_larger(caplog, tmp_path):
+    source = tmp_path / "incoming" / "song.mp3"
+    target = tmp_path / "library" / "Artist" / "Album" / "song.mp3"
+    cover_source = source.parent / "cover.jpg"
+    cover_target = target.parent / "cover.jpg"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    source.parent.mkdir()
+    target.parent.mkdir(parents=True)
+    source.write_bytes(b"audio")
+    cover_source.write_bytes(b"small")
+    cover_target.write_bytes(b"larger-cover")
+    audio_file = DummyAudioFile(source, target, link, requires_tag_write=False)
+    result = ExecutionResult()
+
+    OperationExecutor(dry_run=False, interactive=False)._execute_common_files(
+        [UsualFile(cover_source, song_dir=None)], audio_file, result
+    )
+
+    assert result.errors == []
+    assert cover_target.read_bytes() == b"larger-cover"
+    assert "Keeping existing common image" in caplog.text
 
 
 def test_operation_executor_replaces_non_symlink_genre_path(monkeypatch, tmp_path):
@@ -142,7 +213,9 @@ def test_operation_executor_replaces_non_symlink_genre_path(monkeypatch, tmp_pat
     audio_file = DummyAudioFile(source, target, link, requires_tag_write=False)
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (1, 0, 0)
     assert link.is_symlink()
@@ -161,17 +234,25 @@ def test_operation_executor_removes_stale_genre_symlink(monkeypatch, tmp_path):
     stale_link.symlink_to(os.path.relpath(target, stale_link.parent))
     audio_file = DummyAudioFile(source, target, planned_link, requires_tag_write=False)
     monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
-    monkeypatch.setattr("kimp3.executor.cfg.collection.directory", str(tmp_path / "library"))
-    monkeypatch.setattr("kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3")
+    monkeypatch.setattr(
+        "kimp3.executor.cfg.collection.directory", str(tmp_path / "library")
+    )
+    monkeypatch.setattr(
+        "kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
 
-    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(audio_file)
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
 
     assert result.as_tuple() == (1, 0, 0)
     assert planned_link.is_symlink()
     assert not stale_link.exists()
 
 
-def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(monkeypatch, tmp_path):
+def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(
+    monkeypatch, tmp_path
+):
     library = tmp_path / "library"
     broken_link = library / "_Genres" / "Rock" / "missing.mp3"
     empty_dir = library / "Artist" / "Empty Album"
@@ -179,7 +260,9 @@ def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(monkeypa
     empty_dir.mkdir(parents=True)
     broken_link.symlink_to("../../Artist/Missing/missing.mp3")
     monkeypatch.setattr("kimp3.executor.cfg.collection.directory", str(library))
-    monkeypatch.setattr("kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3")
+    monkeypatch.setattr(
+        "kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
     monkeypatch.setattr("kimp3.executor.cfg.collection.clean_symlinks", True)
     monkeypatch.setattr("kimp3.executor.cfg.scan.delete_empty_dirs", True)
     monkeypatch.setattr("kimp3.executor.cfg.scan.junk_files", ["Thumbs.db"])
@@ -190,7 +273,9 @@ def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(monkeypa
     assert not empty_dir.exists()
 
 
-def test_cleanup_collection_removes_junk_before_empty_dir_cleanup(monkeypatch, tmp_path):
+def test_cleanup_collection_removes_junk_before_empty_dir_cleanup(
+    monkeypatch, tmp_path
+):
     library = tmp_path / "library"
     album_dir = library / "Artist" / "Album"
     junk_file = album_dir / "Thumbs.db"

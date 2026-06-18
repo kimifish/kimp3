@@ -11,11 +11,16 @@ from kimp3.config import APP_NAME, cfg
 from kimp3.interface.utils import yes_or_no
 from kimp3.models import FileOperation, UsualFile
 from kimp3.planning import build_tag_change_plan
-from kimp3.reporting import ExecutionReporter, PlanReporter, execution_result_to_report_dict
+from kimp3.reporting import (
+    ExecutionReporter,
+    PlanReporter,
+    execution_result_to_report_dict,
+)
 from kimp3.song import AudioFile
 
-
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 @dataclass
@@ -37,7 +42,9 @@ class ExecutionResult:
 class OperationExecutor:
     """Execute built OperationPlans without the legacy global operation lists."""
 
-    def __init__(self, dry_run: bool | None = None, interactive: bool | None = None) -> None:
+    def __init__(
+        self, dry_run: bool | None = None, interactive: bool | None = None
+    ) -> None:
         self.dry_run = cfg.dry_run if dry_run is None else dry_run
         self.interactive = cfg.interactive if interactive is None else interactive
         self._suppress_individual_preview = False
@@ -46,7 +53,11 @@ class OperationExecutor:
         """Execute all audio plans and common-file operations for one song directory."""
         result = ExecutionResult()
         completed_audio = []
-        plans = [audio_file.operation_plan for audio_file in song_dir.audio_files if audio_file.operation_plan]
+        plans = [
+            audio_file.operation_plan
+            for audio_file in song_dir.audio_files
+            if audio_file.operation_plan
+        ]
         if self.dry_run and plans:
             PlanReporter().print_full_preview(plans, title=f"Dry Run: {song_dir.path}")
             self._suppress_individual_preview = True
@@ -60,7 +71,9 @@ class OperationExecutor:
                 completed_audio.append(audio_file)
 
         if completed_audio:
-            self._execute_common_files(song_dir.common_files, completed_audio[0], result)
+            self._execute_common_files(
+                song_dir.common_files, completed_audio[0], result
+            )
         if self.dry_run:
             self._suppress_individual_preview = False
         return result
@@ -105,7 +118,13 @@ class OperationExecutor:
             return result
 
         if self.interactive:
-            audio_file.print_changes(show_tags=True, show_path=True, show_genre_links=True, show_cover=True, show_lyrics=True)
+            audio_file.print_changes(
+                show_tags=True,
+                show_path=True,
+                show_genre_links=True,
+                show_cover=True,
+                show_lyrics=True,
+            )
             if yes_or_no("Proceed?", "yYnN").lower() == "n":
                 result.skips += 1
                 return result
@@ -116,7 +135,9 @@ class OperationExecutor:
             elif plan.operation == FileOperation.MOVE:
                 self._execute_move(audio_file)
             self._sync_genre_symlinks(plan.path.target_path, plan.path.genre_links)
-            self._cleanup_stale_genre_symlinks(plan.path.target_path, plan.path.genre_links)
+            self._cleanup_stale_genre_symlinks(
+                plan.path.target_path, plan.path.genre_links
+            )
             verify_errors = self.verify_audio_file(audio_file)
             if verify_errors:
                 result.failures += 1
@@ -145,20 +166,32 @@ class OperationExecutor:
         errors: list[str] = []
         target_path = plan.path.target_path
         if audio_file.filepath != target_path:
-            errors.append(f"Path verification failed: expected {target_path}, got {audio_file.filepath}")
+            errors.append(
+                f"Path verification failed: expected {target_path}, got {audio_file.filepath}"
+            )
         if not target_path.exists():
-            errors.append(f"Path verification failed: target does not exist: {target_path}")
+            errors.append(
+                f"Path verification failed: target does not exist: {target_path}"
+            )
         else:
-            errors.extend(get_backend(target_path).verify(target_path, plan.tags.target_tags, TagWritePolicy()))
+            errors.extend(
+                get_backend(target_path).verify(
+                    target_path, plan.tags.target_tags, TagWritePolicy()
+                )
+            )
         for link_path in plan.path.genre_links:
             if not link_path.is_symlink():
-                errors.append(f"Symlink verification failed: missing symlink {link_path}")
+                errors.append(
+                    f"Symlink verification failed: missing symlink {link_path}"
+                )
                 continue
             actual_target = Path(os.readlink(link_path))
             if not actual_target.is_absolute():
                 actual_target = (link_path.parent / actual_target).resolve()
             if actual_target != target_path.resolve():
-                errors.append(f"Symlink verification failed: {link_path} points to {actual_target}, expected {target_path}")
+                errors.append(
+                    f"Symlink verification failed: {link_path} points to {actual_target}, expected {target_path}"
+                )
         return errors
 
     def preview_plan(self, plan: object) -> None:
@@ -169,7 +202,9 @@ class OperationExecutor:
         plan = audio_file.operation_plan
         target_path = plan.path.target_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = target_path.with_name(f".{target_path.stem}.tmp-kimp3{target_path.suffix}")
+        tmp_path = target_path.with_name(
+            f".{target_path.stem}.tmp-kimp3{target_path.suffix}"
+        )
         self._merge_existing_target_metadata(plan)
         if target_path.exists() and plan.replace_existing:
             target_path.unlink()
@@ -214,17 +249,24 @@ class OperationExecutor:
 
     def _merge_existing_target_metadata(self, plan: object) -> None:
         """Keep selected library metadata when replacing an existing target."""
-        if not getattr(plan, "replace_existing", False) or not plan.path.target_path.exists():
+        if (
+            not getattr(plan, "replace_existing", False)
+            or not plan.path.target_path.exists()
+        ):
             return
         try:
-            existing_tags = get_backend(plan.path.target_path).read(plan.path.target_path)
+            existing_tags = get_backend(plan.path.target_path).read(
+                plan.path.target_path
+            )
         except Exception as error:
             log.warning(f"Could not read existing target artwork for merge: {error}")
             return
         existing_cover = existing_tags.album_cover
         planned_cover = plan.tags.target_tags.album_cover
         changed = False
-        if existing_cover and (not planned_cover or len(existing_cover) > len(planned_cover)):
+        if existing_cover and (
+            not planned_cover or len(existing_cover) > len(planned_cover)
+        ):
             plan.tags.target_tags.artwork = existing_tags.artwork
             changed = True
             log.info(
@@ -240,7 +282,9 @@ class OperationExecutor:
             changed = True
             log.info("Keeping existing library rating")
         if changed:
-            plan.tags = build_tag_change_plan(plan.tags.source_tags, plan.tags.target_tags)
+            plan.tags = build_tag_change_plan(
+                plan.tags.source_tags, plan.tags.target_tags
+            )
 
     def _sync_genre_symlinks(self, target_path: Path, genre_links: list[Path]) -> None:
         for link_path in genre_links:
@@ -254,7 +298,9 @@ class OperationExecutor:
                         continue
                     link_path.unlink()
                 else:
-                    log.warning(f"Replacing non-symlink path in genre directory: {link_path}")
+                    log.warning(
+                        f"Replacing non-symlink path in genre directory: {link_path}"
+                    )
                     if link_path.is_dir():
                         shutil.rmtree(link_path)
                     else:
@@ -262,7 +308,9 @@ class OperationExecutor:
             relative_target = os.path.relpath(target_path, link_path.parent)
             link_path.symlink_to(relative_target)
 
-    def _cleanup_stale_genre_symlinks(self, target_path: Path, planned_links: list[Path]) -> None:
+    def _cleanup_stale_genre_symlinks(
+        self, target_path: Path, planned_links: list[Path]
+    ) -> None:
         genre_dir = self._genre_base_dir()
         if genre_dir is None or not genre_dir.exists():
             return
@@ -272,7 +320,11 @@ class OperationExecutor:
             if not link_path.is_symlink():
                 continue
             raw_target = Path(os.readlink(link_path))
-            actual_target = raw_target if raw_target.is_absolute() else (link_path.parent / raw_target).resolve()
+            actual_target = (
+                raw_target
+                if raw_target.is_absolute()
+                else (link_path.parent / raw_target).resolve()
+            )
             if actual_target == target and link_path.absolute() not in planned:
                 log.info(f"Removing stale genre symlink: {link_path}")
                 link_path.unlink()
@@ -293,7 +345,11 @@ class OperationExecutor:
             if not link_path.is_symlink():
                 continue
             raw_target = Path(os.readlink(link_path))
-            actual_target = raw_target if raw_target.is_absolute() else (link_path.parent / raw_target).resolve()
+            actual_target = (
+                raw_target
+                if raw_target.is_absolute()
+                else (link_path.parent / raw_target).resolve()
+            )
             if not actual_target.exists():
                 log.info(f"Removing broken genre symlink: {link_path}")
                 if not self.dry_run:
@@ -337,7 +393,43 @@ class OperationExecutor:
                 break
             current = current.parent
 
-    def _execute_common_files(self, common_files: list[UsualFile], first_audio: AudioFile, result: ExecutionResult) -> None:
+    def _handle_existing_common_file(
+        self, source_path: Path, target_path: Path, operation: FileOperation
+    ) -> FileOperation:
+        if source_path.suffix.lower() not in IMAGE_EXTENSIONS:
+            log.warning(
+                f"Skipping common file because target already exists: {target_path}"
+            )
+            return FileOperation.NONE
+
+        source_size = source_path.stat().st_size
+        target_size = target_path.stat().st_size
+        if source_size <= target_size:
+            log.warning(
+                "Keeping existing common image because it is not smaller: "
+                f"{target_path} ({target_size} bytes >= {source_size} bytes)"
+            )
+            return FileOperation.NONE
+
+        log.warning(
+            "Replacing existing common image with larger source: "
+            f"{target_path} ({source_size} bytes > {target_size} bytes)"
+        )
+        if operation == FileOperation.COPY:
+            shutil.copyfile(source_path, target_path)
+        else:
+            target_path.unlink()
+            moved_path = shutil.move(source_path, target_path)
+            if Path(moved_path) != target_path:
+                log.warning(f"Moved common image to unexpected path: {moved_path}")
+        return operation
+
+    def _execute_common_files(
+        self,
+        common_files: list[UsualFile],
+        first_audio: AudioFile,
+        result: ExecutionResult,
+    ) -> None:
         if not common_files or first_audio.operation_plan is None:
             return
         operation = first_audio.operation_plan.operation
@@ -354,7 +446,10 @@ class OperationExecutor:
                 if common_file.filepath == target_path:
                     continue
                 if target_path.exists():
-                    raise FileExistsError(f"Target already exists: {target_path}")
+                    common_file.operation_processed = self._handle_existing_common_file(
+                        common_file.filepath, target_path, operation
+                    )
+                    continue
                 if operation == FileOperation.COPY:
                     shutil.copyfile(common_file.filepath, target_path)
                     common_file.operation_processed = FileOperation.COPY
@@ -363,6 +458,8 @@ class OperationExecutor:
                     common_file.filepath = Path(moved_path)
                     common_file.operation_processed = FileOperation.MOVE
             except Exception as error:
-                message = f"Failed to process common file {common_file.filepath}: {error}"
+                message = (
+                    f"Failed to process common file {common_file.filepath}: {error}"
+                )
                 log.error(message)
                 result.errors.append(message)
