@@ -1,316 +1,61 @@
 # KiMP3 configuration example
 
-# Ask before changing files.
-interactive: True
-
-# Preview plan only. Must not change filesystem or tags.
-dry_run: False
-
+interactive: true
+dry_run: false
 scan:
-  # Directories to scan.
   dir_list:
-  # - '/media/kimifish/MediaStore/Музыка'
-  # - /home/kimifish/Downloads
-  # - '/home/pi/Downloads'
-  # - '/home/kimifish/kimiside@gmail.com/Music/Песенник'
-  # - '/home/kimifish/Downloads/Laserdance/Albums/1987 Future Generation'
-  # - '/home/kimifish/Downloads/ППВК'
-  # - '/home/kimifish/Downloads/Spasibo'
-  - '/home/kimifish/Music/Nirvana/1991. Nevermind-src'
-  # - '/home/kimifish/Downloads/VHS Glitch/albums/2016 - Demoniac'
-  # - '/junk/kimiside@gmail.com/Music/Песенник'
-
-  # Directory names to skip while scanning.
-  skip_dirs: ['.unwanted', '.AppleDouble']
-
-  # Delete empty source directories after successful move operations.
-  delete_empty_dirs: True
-
-  # Exact junk filenames that may be deleted during cleanup before empty-dir removal.
-  # Keep this list conservative: do not add useful artwork such as cover/front images.
+  - /home/kimifish/Music/Nirvana/1991. Nevermind-src
+  skip_dirs:
+  - .unwanted
+  - .AppleDouble
+  delete_empty_dirs: true
   junk_files:
-    - '.DS_Store'
-    - 'Thumbs.db'
-    - 'desktop.ini'
-    - 'ehthumbs.db'
-    - 'AlbumArtSmall.jpg'
-
-  # Audio extensions to scan.
-  valid_extensions: ['.mp3', '.flac']
-
-  # Operation mode:
-  # - auto: external scan dirs copy into collection; collection files move/rename in place.
-  # - copy: always copy into collection and write tags only to the copy.
-  # - move: move/rename files; external move requires force_external_move=true.
-  # - none: report only, no file/tag changes.
-  operation: 'auto'
-
-  # Allow moving files from outside collection.directory.
-  force_external_move: False
-
-  # Conflict policy:
-  # - keep-best: default; score candidates and keep better file/library target.
-  # - fail: fail conflicting plans.
-  # - skip: skip conflicting plans.
-  # - suffix: add numeric suffix to conflicting target path.
-  # - replace: replace existing target only with force_replace=true.
-  conflict_policy: 'keep-best'
-
-  # Required for conflict_policy=replace.
-  force_replace: False
-
-  # Allow planned genre symlink creation in operation=none.
-  create_symlinks_in_none: False
-
-  # Common album filenames to be copied/moved with albums.
+  - .DS_Store
+  - Thumbs.db
+  - desktop.ini
+  - ehthumbs.db
+  - AlbumArtSmall.jpg
+  valid_extensions:
+  - .mp3
+  - .flac
+  operation: auto
+  force_external_move: false
+  conflict_policy: keep-best
+  force_replace: false
+  create_symlinks_in_none: false
   common_files:
-    - 'AlbumArtSmall.jpg'
-    - 'Folder.jpg'
-    - 'Thumbs.db'
-    - 'front.jpg'
-    - 'Cover.jpg'
-    - 'Cover.png'
-    - 'front.jpeg'
-
+  - AlbumArtSmall.jpg
+  - Folder.jpg
+  - Thumbs.db
+  - front.jpg
+  - Cover.jpg
+  - Cover.png
+  - front.jpeg
 collection:
-  # Main music collection directory.
-  directory: '/home/kimifish/Music'
-
-  # Check, if album is a compilation by comparing artists of each song
-  compilation_test: True
-
-  # Coefficient for compilation test.
-  # How many songs of all in directory must have different artists
-  # to treat it as a compilation.
+  directory: ~/Music
+  compilation_test: true
   compilation_coef: 0.5
-
-  # Create symlinks to files in genre folders.
-  create_genre_links: True
-
-  # Clean broken symlinks inside managed genre directory.
-  clean_symlinks: True
-
+  create_genre_links: true
+  clean_symlinks: true
 paths:
-  # Patterns for creating paths relative to collection.directory.
-  #           • %album_title                  • %song_title
-  #           • %album_artist                 • %song_artist
-  #           • %num_of_tracks                • %genre
-  #           • %track_num                    • %year
-  #           • %disc_num                     • %ext
   patterns:
     album: '%album_artist/%year - %album_title (CD%disc_num)/%track_num. %song_title.%ext'
-    compilation: '_Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.%ext'
-    genre: '_Жанры/%genre/%year. %song_artist - %song_title.%ext'
-
-  cache_dir: '/home/kimifish/.cache/kimp3'
-
+    compilation: _Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.%ext
+    genre: _Жанры/%genre/%year. %song_artist - %song_title.%ext
+  cache_dir: /home/kimifish/.cache/kimp3
 tags:
-
-  # Fetch tags from Last.FM and try to correct bad and unused tags:
-  fetch_tags: True
-  fetch_album_cover: True
-  fetch_lyrics: True
-  
-  # Skip fetching if content already exists in the file
-  skip_existing_tags: True
-  skip_existing_cover: True
-  skip_existing_lyrics: True
-
-  # You need API_KEY and API_SECRET from https://www.last.fm/api/account.
-  # Use .env to read from LASTFM_API_KEY / LASTFM_API_SECRET etc.
+  fetch_tags: true
+  fetch_album_cover: true
+  fetch_lyrics: true
+  skip_existing_tags: true
+  skip_existing_cover: true
+  skip_existing_lyrics: true
   lastfm_api_key: .env
   lastfm_api_secret: .env
   genius_token: .env
-
-  # In order to perform a write operation you need to authenticate yourself
-  # It's not necessary for read operations
   lastfm_username: .env
   lastfm_password_hash: .env
-
-  # Maximum Last.FM tag length.
-  max_length: 50
-
-  # Move «The» from beginning to the end of artist name. The Beatles → Beatles, the
-  # Or just remove it. Or leave. 'leave', 'move' or 'remove'
-  the_the: 'remove'
-
-  # Allowed genre tags
-  genres: ['acoustic', 'acoustic rock', 'afrobeat', 'afropop', 'alternative', 
-    'alternative metal', 'alternative rock', 'ambient', 'americana', 'anarcho-punk', 
-    'art pop', 'art rock', 'avant-garde', 'baroque', 'bebop', 'big band', 'black metal', 
-    'bluegrass', 'blues', 'blues rock', 'bossa nova', 'breakbeat', 'britpop', 'cajun', 
-    'calypso', 'celtic', 'chamber music', 'chanson', 'chillout', 'chiptune', 
-    'christian rock', 'city pop', 'classic rock', 'classical', 'cloud rap', 
-    'conscious rap', 'contemporary classical', 'country', 'country pop', 'country rock', 
-    'crunk', 'crust punk', 'cumbia', 'dance', 'dancehall', 'dark ambient', 'dark wave', 
-    'death metal', 'deathcore', 'deep house', 'delta blues', 'disco', 'dixieland', 
-    'doom metal', 'downtempo', 'dream pop', 'drill', 'drone', 'drum and bass', 'dub', 
-    'dubstep', 'edm', 'electro', 'electro swing', 'electronic', 'electronica', 'emo', 
-    'emo rap', 'ethereal', 'eurodance', 'experimental', 'fado', 'flamenco', 'folk', 
-    'folk metal', 'folk pop', 'folk punk', 'folk rock', 'free jazz', 'funk', 
-    'funk rock', 'fusion jazz', 'future bass', 'g-funk', 'gabber', 'garage', 
-    'garage rock', 'glam metal', 'glam rock', 'glitch', 'goa trance', 'gospel', 
-    'gothic metal', 'gothic rock', 'grime', 'grindcore', 'groove metal', 'grunge', 
-    'hard rock', 'hardcore', 'hardcore punk', 'hardstyle', 'heavy metal', 'hi-nrg', 
-    'highlife', 'hip hop', 'horrorcore', 'house', 'hyperpop', 'idm', 'indie', 
-    'indie folk', 'indie pop', 'indie rock', 'industrial', 'industrial metal', 
-    'italo-disco', 'j-pop', 'j-rock', 'jam band', 'jazz', 'jazz fusion', 'jazz rap', 
-    'jazz rock', 'jug band', 'k-pop', 'krautrock', 'latin', 'latin jazz', 'latin pop', 
-    'liquid funk', 'lo-fi', 'lounge', 'madchester', 'makossa', 'math rock', 'medieval', 
-    'melodic death metal', 'merengue', 'metal', 'metalcore', 'minimal', 'moombahton', 
-    'motown', 'neo-classical', 'neo-soul', 'neotraditional country', 'new age', 
-    'new jack swing', 'new wave', 'no wave', 'noise', 'noise rock', 'northern soul', 
-    'nu jazz', 'nu metal', 'oi!', 'opera', 'orchestral', 'outlaw country', 'p-funk', 
-    'philly soul', 'phonk', 'polka', 'pop', 'pop punk', 'pop rock', 'post-hardcore', 
-    'post-metal', 'post-punk', 'post-rock', 'power metal', 'power pop', 
-    'progressive house', 'progressive metal', 'progressive rock', 'psychedelic', 
-    'psychedelic rock', 'psychobilly', 'punk', 'punk blues', 'punk rock', 'qawwali', 
-    'queercore', 'r&b', 'ragga', 'raga rock', 'ragtime', 'rap', 'rap metal', 
-    'rap rock', 'reggae', 'reggaeton', 'renaissance', 'retrowave', 'riot grrrl', 'rock', 
-    'rock and roll', 'rockabilly', 'roots reggae', 'salsa', 'samba', 'screamo', 
-    'shoegaze', 'singer-songwriter', 'ska', 'ska punk', 'skiffle', 'smooth jazz', 
-    'soca', 'soft rock', 'soul', 'southern gothic', 'southern rock', 'space rock', 
-    'space synth', 'speed metal', 'spoken word', 'stoner rock', 'surf rock', 'swing', 
-    'symphonic metal', 'synth pop', 'synthwave', 'tango', 'tech house', 'techno', 
-    'teen pop', 'thrash metal', 'trance', 'trap', 'tribal house', 'trip hop', 
-    'tropicália', 'turntablism', 'uk garage', 'vaporwave', 'viking metal', 'vocal jazz', 
-    'west coast hip hop', 'western swing', 'world music', 'zouk', 'zydeco',
-    ]
-
-  # Tags below won't be added to id3 tag list and genres.
-  banned_tags: 'song, hit, new, la la la, popular, increasingly popular,
-    eurovision, gold, gay, albums i own, loved, awesome, good songs,
-    vinyl, deep purple, seen live, alternative, niravana - nevermind, kurt cobain,
-    adriano, top100albumsbyme, ddt, zemfira, love it, interesting, fucking awesome,
-    want to see live, shit
-    '
-  banned_tags_patterns:
-    - '^\d+$'
-    - '^\d+ stars$'
-    - '^[the |]best$'
-    - '^[the |]best (?:song|track|album).*$'
-    - '^best of .*'
-    - '^discovered in.*'
-    - 'top [\d+|artists|cd]'
-    - '^\d+ of \d+ .*'
-    - '.*streamable.*'
-    - '^favou?rite.*'
-    - '.* before you die$'
-    - '.*seixas$'
-
-  # Banned artists from tags. 
-  # Some artists have inappropriate tags, although tags themselfs are good.
-  # It's Internet.
-  banned_artists_from_tags:
-    'rock': ['abba',]
-    'japanese': ['ддт',]
-    'metal': ['nirvana',]
-    'punk': ['nirvana',]
-    'punk rock': ['nirvana',]
-
-  # Merge tags from every list below to the first tag only.
-  similar_tags:
-  - ['latin', 'latin music']
-  - ['house', 'house music']
-
-  # If tag matches regex pattern, first will be used. First value should be a string.
-  similar_tags_patterns:
-
-  # Decades
-  - ['50s', "(?:50|50\\'s|fifties|1950\\'s?|1950s)"]
-  - ['60s', "(?:60|60\\'s|sixties|1960\\'s?|1960s)"]
-  - ['70s', "(?:70|70\\'s|seventies|1970\\'s?|1970s)"]
-  - ['80s', "(?:80|80\\'s|eighties|1980\\'s?|1980s)"]
-  - ['90s', "(?:90|90\\'s|nineties|1990\\'s?|1990s)"]
-  - ['00s', "(?:00\\'s|two thousands|2000s|2000-2009|aughts|noughties)"]
-
-  # Descriptive
-  - ['male vocalist', 'male\s(?:vocals|vocalists?)']
-  - ['instrumental', '(?:no\svocals|instrumental\smusic)']
-  - ['female vocalist', 'female\svoc.*']
-
-  # Regional
-  - ['american', "(?:usa|united states|american artists?)"]
-  - ['british', "(?:uk|united kingdom|british artists?)"]
-  - ['french', "(?:france|french artists?)"]
-  - ['german', "(?:germany|german artists?)"]
-  - ['italian', "(?:italy|italian artists?)"]
-  - ['japanese', "(?:japan|japanese artists?)"]
-  - ['korean', "(?:korea|korean artists?)"]
-  - ['russian', "(?:russia|russian artists?)", "rus"]
-
-  # Electronic/Dance
-  - ['house', 'house music']
-  - ['trance', 'trance music']
-  - ['dubstep', 'dubstep music']
-  - ['synth pop', '(?:synth\W{0,1}pop|synth\W{0,1}dance|synth)']
-  - ['space disco', 'space\W{0,1}disco']
-  - ['electronic', 'electronica']
-  - ['techno', 'tehno']
-  - ['dark wave', 'dark\W{0,1}wave']
-  - ['dark synth', 'dark\W{0,1}synth']
-  - ['synthwave', 'synth\W{0,1}wave']
-  - ['space synth', '(?:space\W{0,1}synth|space\W{0,1}wave)']
-  - ['dance', 'dance\W{0,1}pop']
-  - ['disco', 'euro\W{0,1}disco']
-  - ['electroswing', 'electro\W{0,1}swing']
-
-  # Rock/Metal variants
-  - ['folk rock', 'folk\W{0,1}rock']
-  - ['hard rock', 'hard\W{0,1}rock']
-  - ['progressive rock', '(?:prog\W{0,1}rock|progressive\W{0,1}rock)']
-  - ['garage rock', 'garage\W{0,1}rock']
-  - ['metal', 'heavy\W{0,1}metal', 'metal\smusic']
-  - ['rock', 'rock\W{0,1}music']
-  - ['alternative rock', 'alt\W{0,1}rock', 'alternative\W{0,1}rock']
-  - ['punk rock', 'punk\W{0,1}rock']
-  - ['funk rock', 'funk\W{0,1}rock']
-  - ['funk metal', 'funk\W{0,1}metal']
-  - ['pop rock', 'pop\W{0,1}rock', 'rockpop']
-
-  # Pop variants
-  - ['pop', 'pop music']
-  - ['euro pop', 'euro\W{0,1}pop']
-  - ['k-pop', 'k\W{0,1}pop']
-  - ['j-pop', 'j\W{0,1}pop']
-
-  # Jazz
-  - ['nu jazz', 'nu\W{0,1}jazz']
-  - ['smooth jazz', 'smooth\W{0,1}jazz']
-  - ['jazz', 'jazz music']
-
-  # Other genres
-  - ['hip hop', '(?:alternative |alt |)hip\W{0,1}hop', '(?:alternative |alt |)rap', 'rap music']
-  - ['classical', 'classical music']
-  - ['soul', 'soul music']
-  - ['reggae', 'reggae music']
-  - ['latin', 'latin music']
-  - ['blues', 'blues music']
-  - ['punk', 'punk music']
-  - ['r&b', '(?:r\sand\sb|rhythm\sand\sblues|rnb)']
-  - ['classical', 'classical\smusic']
-  - ['country', '(?:country\smusic|country\sand\swestern)']
-  - ['folk', 'fol[ck](?:|\smusic)']
-  - ['world music', 'world']
-
-  # Recording types
-  - ['live', '(?:live\sperformance|concert\srecording)']
-  - ['studio', 'studio\srecording']
-  - ['remix', '(?:remixed|remix\sversion)']
-  - ['cover', '(?:cover\sversion|covered\sby)']
-  - ['original', 'original\sversion']
-  - ['acoustic', '(?:unplugged|acoustic\smusic)']
-
-  # Other Tags
-  - ['indie', 'indie\W{0,1}rock']
-  - ['funny', 'funny\W{0,1}song', 'fun']
-  
-  # Replacements for Genius search. Not used for tag processing.
-  # Genius names are not always the same as LastFM.
-  genius_replacements:
-  # ['lastfm_name', 'genius_name']
-  - ['zемфира', 'земфира']
-
-  # LLM service configuration
-  use_llm: True
-  llm_url: "http://kimipc.lan:8000/music_machine"
+  the_the: remove
+  use_llm: true
+  llm_url: http://kimipc.lan:8000/v1/chat
+  llm_timeout: 30

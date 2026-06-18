@@ -46,7 +46,9 @@ def test_resolve_config_files_uses_project_example_fallback(monkeypatch, tmp_pat
     project_config_dir = tmp_path / "project" / "config"
     for directory in (xdg_dir, etc_dir, project_config_dir):
         directory.mkdir(parents=True)
-    (project_config_dir / "config.example.yaml").write_text("interactive: false\n", encoding="utf-8")
+    (project_config_dir / "config.example.yaml").write_text(
+        "interactive: false\n", encoding="utf-8"
+    )
 
     monkeypatch.setattr(
         config_loader,
@@ -65,10 +67,30 @@ def test_settings_rejects_unknown_fields():
 
 
 def test_settings_normalizes_scan_values():
-    settings = Settings.model_validate({"scan": {"dir_list": "~/Music", "operation": "none"}})
+    settings = Settings.model_validate(
+        {"scan": {"dir_list": "~/Music", "operation": "none"}}
+    )
 
     assert settings.scan.dir_list == [str(Path("~/Music").expanduser())]
     assert settings.scan.operation.value == "none"
+
+
+def test_settings_normalizes_banned_artists_from_tags_case():
+    settings = Settings.model_validate(
+        {
+            "tags": {
+                "banned_tags": "Rock, Поп",
+                "banned_artists_from_tags": {
+                    "Post-Punk": ["ППВК", "Первый Полёт в Космос"]
+                },
+            }
+        }
+    )
+
+    assert settings.tags.banned_tags == ["rock", "поп"]
+    assert settings.tags.banned_artists_from_tags == {
+        "post-punk": ["ппвк", "первый полёт в космос"]
+    }
 
 
 def test_settings_default_operation_is_auto():
@@ -84,9 +106,50 @@ def test_old_move_or_copy_name_is_rejected():
 
 
 def test_project_example_config_is_valid():
-    settings = config_loader.load_settings([str(config_loader.project_root() / "config" / "config.example.yaml")])
+    settings = config_loader.load_settings(
+        [str(config_loader.project_root() / "config" / "config.example.yaml")]
+    )
 
     assert settings.scan.operation.value == "auto"
     assert settings.collection.directory == str(Path("~/Music").expanduser())
     assert settings.paths.cache_dir == str(Path("~/.cache/kimp3").expanduser())
     assert "Thumbs.db" in settings.scan.junk_files
+    assert "rock" in settings.tags.genres
+    assert "post-punk" in settings.tags.genres
+    assert "post-punk" not in settings.tags.extended_genres
+    assert "post-punk" not in settings.tags.genre_parents
+    assert settings.tags.genre_parents["post-punk revival"] == "post-punk"
+    assert settings.tags.genre_parents["coldwave"] == "dark wave"
+
+
+def test_load_settings_merges_sibling_tags_yaml(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    tags_path = tmp_path / "tags.yaml"
+    config_path.write_text(
+        "tags:\n  use_llm: true\n  llm_url: http://ai.local:8000/v1/chat\n",
+        encoding="utf-8",
+    )
+    tags_path.write_text(
+        "tags:\n  genres: [rock]\n  extended_genres: [coldwave]\n  genre_parents:\n    coldwave: rock\n",
+        encoding="utf-8",
+    )
+
+    settings = config_loader.load_settings([str(config_path)])
+
+    assert settings.tags.use_llm is True
+    assert settings.tags.llm_url == "http://ai.local:8000/v1/chat"
+    assert settings.tags.genres == ["rock"]
+    assert settings.tags.extended_genres == ["coldwave"]
+    assert settings.tags.genre_parents == {"coldwave": "rock"}
+    assert config_loader.get_active_config_files() == [config_path, tags_path]
+
+
+def test_load_settings_accepts_raw_sibling_tags_yaml(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    tags_path = tmp_path / "tags.yaml"
+    config_path.write_text("interactive: false\n", encoding="utf-8")
+    tags_path.write_text("genres: [rock]\n", encoding="utf-8")
+
+    settings = config_loader.load_settings([str(config_path)])
+
+    assert settings.tags.genres == ["rock"]

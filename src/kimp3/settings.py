@@ -33,7 +33,9 @@ class ScanSettings(BaseModel):
     operation: FileOperation = FileOperation.AUTO
     force_external_move: bool = False
     force_replace: bool = False
-    conflict_policy: Literal["keep-best", "fail", "skip", "suffix", "replace"] = "keep-best"
+    conflict_policy: Literal["keep-best", "fail", "skip", "suffix", "replace"] = (
+        "keep-best"
+    )
     create_symlinks_in_none: bool = False
     common_files: list[str] = Field(default_factory=list)
 
@@ -56,7 +58,10 @@ class ScanSettings(BaseModel):
     @field_validator("valid_extensions", mode="after")
     @classmethod
     def normalize_extensions(cls, value: list[str]) -> list[str]:
-        return [item.lower() if item.startswith(".") else f".{item.lower()}" for item in value]
+        return [
+            item.lower() if item.startswith(".") else f".{item.lower()}"
+            for item in value
+        ]
 
 
 class CollectionSettings(BaseModel):
@@ -78,7 +83,9 @@ class PathPatternsSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     album: str = "%album_artist/%year - %album_title/%track_num. %song_title.mp3"
-    compilation: str = "_Compilations/%album_title/%track_num. %song_artist - %song_title.mp3"
+    compilation: str = (
+        "_Compilations/%album_title/%track_num. %song_artist - %song_title.mp3"
+    )
     genre: str = "_Genres/%genre/%year. %song_artist - %song_title.mp3"
 
 
@@ -111,6 +118,10 @@ class TagsSettings(BaseModel):
     max_length: int = 50
     the_the: Literal["leave", "move", "remove"] = "leave"
     genres: list[str] = Field(default_factory=list)
+    extended_genres: list[str] = Field(default_factory=list)
+    genre_parents: dict[str, str] = Field(default_factory=dict)
+    max_genres: int = 3
+    max_tags: int = 30
     banned_tags: list[str] = Field(default_factory=list)
     banned_tags_patterns: list[Any] = Field(default_factory=list)
     banned_artists_from_tags: dict[str, list[str]] = Field(default_factory=dict)
@@ -119,6 +130,7 @@ class TagsSettings(BaseModel):
     genius_replacements: list[list[str]] = Field(default_factory=list)
     use_llm: bool = False
     llm_url: str = ""
+    llm_timeout: int = 30
 
     @field_validator("banned_tags", mode="before")
     @classmethod
@@ -126,8 +138,28 @@ class TagsSettings(BaseModel):
         if value is None:
             return []
         if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
+            return [
+                item.strip().casefold() for item in value.split(",") if item.strip()
+            ]
         return value  # type: ignore[return-value]
+
+    @field_validator("banned_artists_from_tags", mode="before")
+    @classmethod
+    def normalize_banned_artists_from_tags(cls, value: object) -> dict[str, list[str]]:
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            return value  # type: ignore[return-value]
+        return {
+            str(tag)
+            .strip()
+            .casefold(): [
+                str(artist).strip().casefold()
+                for artist in artists
+                if str(artist).strip()
+            ]
+            for tag, artists in value.items()
+        }
 
 
 class LoggerSuppressSettings(BaseModel):
@@ -141,7 +173,9 @@ class LoggingSettings(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     level: str = "INFO"
-    loggers: LoggerSuppressSettings | dict[str, str] = Field(default_factory=LoggerSuppressSettings)
+    loggers: LoggerSuppressSettings | dict[str, str] = Field(
+        default_factory=LoggerSuppressSettings
+    )
 
 
 class Settings(BaseModel):

@@ -8,7 +8,6 @@ import yaml
 
 from kimp3.settings import Settings
 
-
 ACTIVE_CONFIG_FILES: list[Path] = []
 
 
@@ -22,7 +21,9 @@ def config_search_dirs(app_name: str, cwd: Path | None = None) -> list[Path]:
     return [xdg_root / app_name, Path("/etc") / app_name, current_dir / "config"]
 
 
-def discover_config_files(app_name: str, filename: str = "config.yaml", cwd: Path | None = None) -> list[str]:
+def discover_config_files(
+    app_name: str, filename: str = "config.yaml", cwd: Path | None = None
+) -> list[str]:
     result = []
     search_dirs = config_search_dirs(app_name, cwd=cwd)
     for index, path in enumerate(search_dirs):
@@ -37,7 +38,9 @@ def discover_config_files(app_name: str, filename: str = "config.yaml", cwd: Pat
     return result
 
 
-def resolve_config_files(app_name: str, config_file: str | None, cwd: Path | None = None) -> list[str]:
+def resolve_config_files(
+    app_name: str, config_file: str | None, cwd: Path | None = None
+) -> list[str]:
     if config_file:
         return [str(Path(config_file).expanduser())]
     return discover_config_files(app_name, cwd=cwd)
@@ -62,16 +65,52 @@ def merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return merged
 
 
+def related_tags_config_file(config_file: str) -> Path | None:
+    config_path = Path(config_file).expanduser()
+    tags_path = config_path.parent / "tags.yaml"
+    if tags_path.exists():
+        return tags_path
+
+    example_path = config_path.parent / "tags.example.yaml"
+    if example_path.exists():
+        return example_path
+
+    return None
+
+
+def _load_config_file(config_path: Path) -> dict[str, Any]:
+    with config_path.open("r", encoding="utf-8") as file:
+        loaded = yaml.safe_load(file) or {}
+    if not isinstance(loaded, dict):
+        return {}
+    return loaded
+
+
+def _load_tags_config_file(config_path: Path) -> dict[str, Any]:
+    loaded = _load_config_file(config_path)
+    if "tags" in loaded:
+        return loaded
+    return {"tags": loaded}
+
+
 def load_settings(config_files: list[str]) -> Settings:
     raw_config: dict[str, Any] = {}
+    loaded_files: list[str] = []
     for config_file in config_files:
         config_path = Path(config_file).expanduser()
         if not config_path.exists():
             continue
-        with config_path.open("r", encoding="utf-8") as file:
-            loaded = yaml.safe_load(file) or {}
-        raw_config = merge_dicts(raw_config, loaded)
-    set_active_config_files(config_files)
+        raw_config = merge_dicts(raw_config, _load_config_file(config_path))
+        loaded_files.append(str(config_path))
+
+        tags_config_path = related_tags_config_file(str(config_path))
+        if tags_config_path:
+            raw_config = merge_dicts(
+                raw_config, _load_tags_config_file(tags_config_path)
+            )
+            loaded_files.append(str(tags_config_path))
+
+    set_active_config_files(loaded_files)
     return Settings.model_validate(raw_config)
 
 
@@ -99,13 +138,48 @@ def default_logging_config() -> dict[str, Any]:
             "PIL": "WARNING",
         },
         "tags": {
-            "startup": {"show": True, "icon": "S", "tag_color": "#5f875f", "icon_color": "#ffffff"},
-            "config": {"show": True, "icon": "cfg", "tag_color": "#5f5f87", "icon_color": "#ffffff"},
-            "scan": {"show": True, "icon": "scan", "tag_color": "#005f87", "icon_color": "#ffffff"},
-            "tags": {"show": True, "icon": "tag", "tag_color": "#875f00", "icon_color": "#ffffff"},
-            "files": {"show": True, "icon": "file", "tag_color": "#5f5f5f", "icon_color": "#ffffff"},
-            "network": {"show": False, "icon": "net", "tag_color": "#444444", "icon_color": "#ffffff"},
-            "state": {"show": True, "icon": "st", "tag_color": "#875f00", "icon_color": "#ffffff"},
+            "startup": {
+                "show": True,
+                "icon": "S",
+                "tag_color": "#5f875f",
+                "icon_color": "#ffffff",
+            },
+            "config": {
+                "show": True,
+                "icon": "cfg",
+                "tag_color": "#5f5f87",
+                "icon_color": "#ffffff",
+            },
+            "scan": {
+                "show": True,
+                "icon": "scan",
+                "tag_color": "#005f87",
+                "icon_color": "#ffffff",
+            },
+            "tags": {
+                "show": True,
+                "icon": "tag",
+                "tag_color": "#875f00",
+                "icon_color": "#ffffff",
+            },
+            "files": {
+                "show": True,
+                "icon": "file",
+                "tag_color": "#5f5f5f",
+                "icon_color": "#ffffff",
+            },
+            "network": {
+                "show": False,
+                "icon": "net",
+                "tag_color": "#444444",
+                "icon_color": "#ffffff",
+            },
+            "state": {
+                "show": True,
+                "icon": "st",
+                "tag_color": "#875f00",
+                "icon_color": "#ffffff",
+            },
         },
     }
 
@@ -137,10 +211,14 @@ def resolve_logging_config_file(app_name: str, cwd: Path | None = None) -> Path 
     return None
 
 
-def load_logging_config(settings: Settings, app_name: str, cwd: Path | None = None) -> dict[str, Any]:
+def load_logging_config(
+    settings: Settings, app_name: str, cwd: Path | None = None
+) -> dict[str, Any]:
     config = default_logging_config()
     inline_logging = settings.logging.model_dump()
-    inline_logging["loggers"] = _normalize_logger_overrides(inline_logging.get("loggers", {}))
+    inline_logging["loggers"] = _normalize_logger_overrides(
+        inline_logging.get("loggers", {})
+    )
     config = merge_dicts(config, inline_logging)
 
     logging_path = resolve_logging_config_file(app_name, cwd=cwd)

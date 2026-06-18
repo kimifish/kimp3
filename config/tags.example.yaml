@@ -1,0 +1,1850 @@
+# KiMP3 tag taxonomy and tag processing rules.
+# Loaded automatically from tags.yaml/tags.example.yaml next to each config file.
+
+tags:
+  max_length: 50
+  genres:
+    - acoustic
+    - african
+    - alternative
+    - ambient
+    - arabic
+    - avant-garde
+    - balkan
+    - blues
+    - bollywood
+    - breakbeat
+    - cajun
+    - calypso
+    - celtic
+    - chanson
+    - chillout
+    - chiptune
+    - cinematic
+    - classical
+    - country
+    - cumbia
+    - dance
+    - dancehall
+    - dark wave
+    - disco
+    - downtempo
+    - drone
+    - drum and bass
+    - dub
+    - dubstep
+    - electro
+    - electronic
+    - experimental
+    - fado
+    - flamenco
+    - folk
+    - funk
+    - gospel
+    - goth
+    - grime
+    - hardcore
+    - hardstyle
+    - hip hop
+    - house
+    - idm
+    - indie
+    - industrial
+    - jazz
+    - jungle
+    - latin
+    - lo-fi
+    - lounge
+    - metal
+    - new age
+    - new wave
+    - noise
+    - opera
+    - pop
+    - post-punk
+    - post-rock
+    - punk
+    - r&b
+    - reggae
+    - reggaeton
+    - rock
+    - salsa
+    - samba
+    - ska
+    - soul
+    - spoken word
+    - surf
+    - swing
+    - synthwave
+    - techno
+    - trance
+    - trap
+    - trip hop
+    - uk garage
+    - vaporwave
+    - world music
+    - zouk
+    - zydeco
+  extended_genres:
+    - 2 tone
+    - 2-step
+    - abstract hip hop
+    - acid breaks
+    - acid house
+    - acid jazz
+    - acid rock
+    - acid techno
+    - acid trance
+    - acoustic rock
+    - afro-cuban
+    - afro-cuban jazz
+    - afrobeat
+    - afrobeats
+    - afropop
+    - alternative country
+    - alternative dance
+    - alternative folk
+    - alternative hip hop
+    - alternative metal
+    - alternative pop
+    - alternative punk
+    - alternative r&b
+    - alternative rock
+    - ambient dub
+    - ambient house
+    - ambient pop
+    - ambient techno
+    - ambient trance
+    - americana
+    - anarcho-punk
+    - anatolian rock
+    - anti-folk
+    - aor
+    - arabic pop
+    - arena rock
+    - art pop
+    - art punk
+    - art rock
+    - avant-garde jazz
+    - avant-garde metal
+    - avant-garde pop
+    - balearic
+    - baroque
+    - baroque pop
+    - bass house
+    - bassline
+    - bebop
+    - berlin school
+    - big band
+    - big beat
+    - big room house
+    - big room trance
+    - black metal
+    - blackgaze
+    - blue-eyed soul
+    - bluegrass
+    - blues rock
+    - boogie
+    - boogie-woogie
+    - boom bap
+    - bossa nova
+    - breakcore
+    - breaks
+    - britpop
+    - brostep
+    - bubblegum pop
+    - c-pop
+    - c86
+    - canterbury scene
+    - chamber folk
+    - chamber music
+    - chamber pop
+    - chanson française
+    - chicago blues
+    - chicago drill
+    - chicago house
+    - chillstep
+    - chillsynth
+    - chillwave
+    - christian hip hop
+    - christian metal
+    - christian rock
+    - cinematic ambient
+    - city pop
+    - classic rock
+    - cloud rap
+    - coldwave
+    - complextro
+    - conscious rap
+    - contemporary classical
+    - contemporary folk
+    - contemporary jazz
+    - contemporary r&b
+    - cool jazz
+    - country blues
+    - country folk
+    - country pop
+    - country rap
+    - country rock
+    - country soul
+    - cowpunk
+    - crossover thrash
+    - crunk
+    - crust punk
+    - cybergrind
+    - d-beat
+    - dance-pop
+    - dance-punk
+    - dark ambient
+    - dark cabaret
+    - dark electro
+    - dark folk
+    - dark jazz
+    - dark synth
+    - darkstep
+    - darksynth
+    - death industrial
+    - death metal
+    - death-doom metal
+    - deathcore
+    - deathrock
+    - deathstep
+    - deep funk
+    - deep house
+    - deep soul
+    - deep techno
+    - delta blues
+    - desert blues
+    - desert rock
+    - detroit techno
+    - digital hardcore
+    - dirty south
+    - dixieland
+    - djent
+    - doom metal
+    - doomcore
+    - doomgaze
+    - dream pop
+    - drill
+    - drone metal
+    - dub techno
+    - dubtronica
+    - dungeon synth
+    - eastern european folk
+    - ebm
+    - edm
+    - electro swing
+    - electro-industrial
+    - electroacoustic
+    - electroclash
+    - electronica
+    - electropop
+    - electropunk
+    - emo
+    - emo rap
+    - ethereal
+    - ethno jazz
+    - euro house
+    - euro pop
+    - eurobeat
+    - eurodance
+    - experimental rock
+    - folk jazz
+    - folk metal
+    - folk pop
+    - folk punk
+    - folk rock
+    - folktronica
+    - freak folk
+    - free jazz
+    - french house
+    - funk metal
+    - funk rock
+    - fusion jazz
+    - future bass
+    - future funk
+    - future garage
+    - g-funk
+    - gabber
+    - garage
+    - garage house
+    - garage rock
+    - glam metal
+    - glam rock
+    - glitch
+    - glitch hop
+    - goa trance
+    - goregrind
+    - gothic metal
+    - gothic rock
+    - gregorian chant
+    - grindcore
+    - groove metal
+    - grunge
+    - hard bop
+    - hard rock
+    - hard trance
+    - hardcore punk
+    - hardvapour
+    - hauntology
+    - heavy metal
+    - hi-nrg
+    - highlife
+    - horror punk
+    - horrorcore
+    - hyperpop
+    - hypnagogic pop
+    - illbient
+    - indian classical
+    - indie folk
+    - indie pop
+    - indie rock
+    - indietronica
+    - industrial ambient
+    - industrial metal
+    - industrial techno
+    - italo-disco
+    - j-pop
+    - j-rock
+    - jam band
+    - jangle pop
+    - jazz fusion
+    - jazz rap
+    - jazz rock
+    - jazz-funk
+    - jazztronica
+    - jug band
+    - k-pop
+    - klezmer
+    - kosmische musik
+    - krautrock
+    - latin jazz
+    - latin pop
+    - latin rock
+    - liquid funk
+    - madchester
+    - makossa
+    - martial industrial
+    - math rock
+    - mathcore
+    - medieval
+    - medieval folk
+    - melodic black metal
+    - melodic death metal
+    - melodic metalcore
+    - merengue
+    - metalcore
+    - minimal
+    - minimal synth
+    - minimal techno
+    - minimal wave
+    - moombahton
+    - motown
+    - neo-classical
+    - neo-prog
+    - neo-psychedelia
+    - neo-soul
+    - neofolk
+    - neotraditional country
+    - new beat
+    - new jack swing
+    - new rave
+    - new romantic
+    - no wave
+    - noise rock
+    - northern soul
+    - nu jazz
+    - nu metal
+    - oi!
+    - old school hip hop
+    - orchestral
+    - outlaw country
+    - p-funk
+    - philly soul
+    - phonk
+    - polka
+    - pop punk
+    - pop rock
+    - post-black metal
+    - post-bop
+    - post-grunge
+    - post-hardcore
+    - post-industrial
+    - post-metal
+    - post-punk revival
+    - power metal
+    - power pop
+    - progressive house
+    - progressive metal
+    - progressive rock
+    - progressive trance
+    - proto-punk
+    - psychedelic
+    - psychedelic folk
+    - psychedelic rock
+    - psychobilly
+    - psytrance
+    - punk blues
+    - punk rock
+    - qawwali
+    - queercore
+    - raga rock
+    - ragga
+    - raggamuffin
+    - ragtime
+    - rap
+    - rap metal
+    - rap rock
+    - renaissance
+    - retrowave
+    - riddim
+    - riot grrrl
+    - rock and roll
+    - rockabilly
+    - roots reggae
+    - russian rock
+    - samba-jazz
+    - screamo
+    - shoegaze
+    - singer-songwriter
+    - ska punk
+    - skiffle
+    - slowcore
+    - sludge metal
+    - smooth jazz
+    - soca
+    - soft rock
+    - sophisti-pop
+    - soul jazz
+    - southern gothic
+    - southern hip hop
+    - southern rock
+    - southern soul
+    - sovietwave
+    - space disco
+    - space rock
+    - space synth
+    - speed metal
+    - speedcore
+    - stoner metal
+    - stoner rock
+    - surf rock
+    - symphonic metal
+    - symphonic rock
+    - synth pop
+    - synth-pop
+    - tango
+    - tech house
+    - teen pop
+    - thrash metal
+    - thrashcore
+    - traditional folk
+    - tribal house
+    - tropicália
+    - turkish rock
+    - turntablism
+    - uk funky
+    - vapor
+    - vaportrap
+    - viking metal
+    - vocal jazz
+    - vocal trance
+    - west coast hip hop
+    - western swing
+    - witch house
+    - yacht rock
+  genre_parents:
+    2 tone: ska
+    2-step: uk garage
+    abstract hip hop: hip hop
+    acid breaks: breakbeat
+    acid house: house
+    acid jazz: jazz
+    acid rock: rock
+    acid techno: techno
+    acid trance: trance
+    acoustic rock: rock
+    afro-cuban: latin
+    afro-cuban jazz: jazz
+    afrobeat: african
+    afrobeats: african
+    afropop: african
+    alternative country: country
+    alternative dance: dance
+    alternative folk: folk
+    alternative hip hop: hip hop
+    alternative metal: metal
+    alternative pop: pop
+    alternative punk: punk
+    alternative r&b: r&b
+    alternative rock: rock
+    ambient dub: ambient
+    ambient house: ambient
+    ambient pop: ambient
+    ambient techno: ambient
+    ambient trance: ambient
+    americana: country
+    anarcho-punk: punk
+    anatolian rock: rock
+    anti-folk: folk
+    aor: rock
+    arabic pop: arabic
+    arena rock: rock
+    art pop: pop
+    art punk: punk
+    art rock: rock
+    avant-garde jazz: jazz
+    avant-garde metal: metal
+    avant-garde pop: pop
+    balearic: downtempo
+    baroque: classical
+    baroque pop: pop
+    bass house: house
+    bassline: uk garage
+    bebop: jazz
+    berlin school: electronic
+    big band: jazz
+    big beat: breakbeat
+    big room house: house
+    big room trance: trance
+    black metal: metal
+    blackgaze: metal
+    blue-eyed soul: soul
+    bluegrass: country
+    blues rock: rock
+    boogie: funk
+    boogie-woogie: blues
+    boom bap: hip hop
+    bossa nova: latin
+    breakcore: breakbeat
+    breaks: breakbeat
+    britpop: rock
+    brostep: dubstep
+    bubblegum pop: pop
+    c-pop: pop
+    c86: indie
+    canterbury scene: rock
+    chamber folk: folk
+    chamber music: classical
+    chamber pop: pop
+    chanson française: chanson
+    chicago blues: blues
+    chicago drill: hip hop
+    chicago house: house
+    chillstep: dubstep
+    chillsynth: synthwave
+    chillwave: synthwave
+    christian hip hop: hip hop
+    christian metal: metal
+    christian rock: rock
+    cinematic ambient: ambient
+    city pop: pop
+    classic rock: rock
+    cloud rap: hip hop
+    coldwave: dark wave
+    complextro: house
+    conscious rap: hip hop
+    contemporary classical: classical
+    contemporary folk: folk
+    contemporary jazz: jazz
+    contemporary r&b: r&b
+    cool jazz: jazz
+    country blues: blues
+    country folk: country
+    country pop: country
+    country rap: country
+    country rock: country
+    country soul: country
+    cowpunk: country
+    crossover thrash: metal
+    crunk: hip hop
+    crust punk: punk
+    cybergrind: metal
+    d-beat: punk
+    dance-pop: pop
+    dance-punk: punk
+    dark ambient: ambient
+    dark cabaret: goth
+    dark electro: electro
+    dark folk: folk
+    dark jazz: jazz
+    dark synth: synthwave
+    darkstep: drum and bass
+    darksynth: synthwave
+    death industrial: industrial
+    death metal: metal
+    death-doom metal: metal
+    deathcore: metal
+    deathrock: goth
+    deathstep: dubstep
+    deep funk: funk
+    deep house: house
+    deep soul: soul
+    deep techno: techno
+    delta blues: blues
+    desert blues: blues
+    desert rock: rock
+    detroit techno: techno
+    digital hardcore: hardcore
+    dirty south: hip hop
+    dixieland: jazz
+    djent: metal
+    doom metal: metal
+    doomcore: hardcore
+    doomgaze: metal
+    dream pop: indie
+    drill: hip hop
+    drone metal: metal
+    dub techno: techno
+    dubtronica: electronic
+    dungeon synth: ambient
+    eastern european folk: folk
+    ebm: industrial
+    edm: dance
+    electro swing: swing
+    electro-industrial: industrial
+    electroacoustic: experimental
+    electroclash: electro
+    electronica: electronic
+    electropop: pop
+    electropunk: punk
+    emo: rock
+    emo rap: hip hop
+    ethereal: ambient
+    ethno jazz: jazz
+    euro house: house
+    euro pop: pop
+    eurobeat: dance
+    eurodance: dance
+    experimental rock: rock
+    folk jazz: jazz
+    folk metal: metal
+    folk pop: folk
+    folk punk: punk
+    folk rock: folk
+    folktronica: folk
+    freak folk: folk
+    free jazz: jazz
+    french house: house
+    funk metal: metal
+    funk rock: funk
+    fusion jazz: jazz
+    future bass: electronic
+    future funk: vaporwave
+    future garage: uk garage
+    g-funk: hip hop
+    gabber: hardcore
+    garage: rock
+    garage house: house
+    garage rock: rock
+    glam metal: metal
+    glam rock: rock
+    glitch: electronic
+    glitch hop: hip hop
+    goa trance: trance
+    goregrind: metal
+    gothic metal: metal
+    gothic rock: goth
+    gregorian chant: classical
+    grindcore: metal
+    groove metal: metal
+    grunge: rock
+    hard bop: jazz
+    hard rock: rock
+    hard trance: trance
+    hardcore punk: punk
+    hardvapour: vaporwave
+    hauntology: experimental
+    heavy metal: metal
+    hi-nrg: dance
+    highlife: african
+    horror punk: punk
+    horrorcore: hip hop
+    hyperpop: pop
+    hypnagogic pop: pop
+    illbient: ambient
+    indian classical: classical
+    indie folk: folk
+    indie pop: pop
+    indie rock: rock
+    indietronica: indie
+    industrial ambient: industrial
+    industrial metal: metal
+    industrial techno: techno
+    italo-disco: disco
+    j-pop: pop
+    j-rock: rock
+    jam band: rock
+    jangle pop: pop
+    jazz fusion: jazz
+    jazz rap: hip hop
+    jazz rock: jazz
+    jazz-funk: jazz
+    jazztronica: jazz
+    jug band: folk
+    k-pop: pop
+    klezmer: folk
+    kosmische musik: electronic
+    krautrock: experimental
+    latin jazz: jazz
+    latin pop: latin
+    latin rock: latin
+    liquid funk: drum and bass
+    madchester: indie
+    makossa: african
+    martial industrial: industrial
+    math rock: rock
+    mathcore: metal
+    medieval: classical
+    medieval folk: folk
+    melodic black metal: metal
+    melodic death metal: metal
+    melodic metalcore: metal
+    merengue: latin
+    metalcore: metal
+    minimal: electronic
+    minimal synth: electronic
+    minimal techno: techno
+    minimal wave: dark wave
+    moombahton: dance
+    motown: soul
+    neo-classical: classical
+    neo-prog: rock
+    neo-psychedelia: rock
+    neo-soul: soul
+    neofolk: folk
+    neotraditional country: country
+    new beat: dance
+    new jack swing: r&b
+    new rave: dance
+    new romantic: new wave
+    no wave: avant-garde
+    noise rock: rock
+    northern soul: soul
+    nu jazz: jazz
+    nu metal: metal
+    oi!: punk
+    old school hip hop: hip hop
+    orchestral: classical
+    outlaw country: country
+    p-funk: funk
+    philly soul: soul
+    phonk: hip hop
+    polka: folk
+    pop punk: punk
+    pop rock: rock
+    post-black metal: metal
+    post-bop: jazz
+    post-grunge: rock
+    post-hardcore: hardcore
+    post-industrial: industrial
+    post-metal: metal
+    post-punk revival: post-punk
+    power metal: metal
+    power pop: pop
+    progressive house: house
+    progressive metal: metal
+    progressive rock: rock
+    progressive trance: trance
+    proto-punk: punk
+    psychedelic: rock
+    psychedelic folk: folk
+    psychedelic rock: rock
+    psychobilly: rock
+    psytrance: trance
+    punk blues: punk
+    punk rock: punk
+    qawwali: world music
+    queercore: punk
+    raga rock: rock
+    ragga: reggae
+    raggamuffin: reggae
+    ragtime: jazz
+    rap: hip hop
+    rap metal: metal
+    rap rock: rock
+    renaissance: classical
+    retrowave: synthwave
+    riddim: dubstep
+    riot grrrl: punk
+    rock and roll: rock
+    rockabilly: rock
+    roots reggae: reggae
+    russian rock: rock
+    samba-jazz: jazz
+    screamo: punk
+    shoegaze: indie
+    singer-songwriter: folk
+    ska punk: ska
+    skiffle: folk
+    slowcore: rock
+    sludge metal: metal
+    smooth jazz: jazz
+    soca: calypso
+    soft rock: rock
+    sophisti-pop: pop
+    soul jazz: jazz
+    southern gothic: country
+    southern hip hop: hip hop
+    southern rock: rock
+    southern soul: soul
+    sovietwave: synthwave
+    space disco: disco
+    space rock: rock
+    space synth: synthwave
+    speed metal: metal
+    speedcore: hardcore
+    stoner metal: metal
+    stoner rock: rock
+    surf rock: surf
+    symphonic metal: metal
+    symphonic rock: rock
+    synth pop: pop
+    synth-pop: pop
+    tango: latin
+    tech house: house
+    teen pop: pop
+    thrash metal: metal
+    thrashcore: punk
+    traditional folk: folk
+    tribal house: house
+    tropicália: latin
+    turkish rock: rock
+    turntablism: hip hop
+    uk funky: uk garage
+    vapor: vaporwave
+    vaportrap: vaporwave
+    viking metal: metal
+    vocal jazz: jazz
+    vocal trance: trance
+    west coast hip hop: hip hop
+    western swing: country
+    witch house: electronic
+    yacht rock: rock
+  max_genres: 5
+  max_tags: 30
+  banned_tags:
+    " song, hit, new, la la la, popular, increasingly popular, eurovision, gold, gay, albums i own, loved, awesome,
+    good songs, vinyl, deep purple, seen live, alternative, niravana - nevermind, kurt cobain, adriano, top100albumsbyme,
+    ddt, zemfira, love it, interesting, fucking awesome, want to see live, shit, 1 star, 2 stars, 3 stars, 4 stars, 5 stars,
+    10s, 2010s, 2020s, addictive, all time favourites, all time favorites, amazing, awesome track, best, best song ever, catchy,
+    classic, cool, download, earworm, fave, faves, favourite, favourites, favorite, favorites, favourite songs, favorite songs,
+    good, good song, great, great song, guilty pleasure, i like, i love this song, i own, itunes, last.fm, lastfm, like, lol,
+    love, love at first listen, loved tracks, mp3, my music, my songs, nice, overrated, own, owned, playlist, radio, recommended,
+    scrobble, scrobbled, single, spotify, stream, streaming, top, track, tracks, underrated, video, youtube, видел живьем,
+    классика, круто, любимое, любимые, моя музыка, нравится, плейлист, хит, хорошая песня, хорошо "
+  banned_tags_patterns:
+    - ^\d+$
+    - ^\d+ stars$
+    - ^[the |]best$
+    - ^[the |]best (?:song|track|album).*$
+    - ^best of .*
+    - ^discovered in.*
+    - top [\d+|artists|cd]
+    - ^\d+ of \d+ .*
+    - .*streamable.*
+    - ^favou?rite.*
+    - .* before you die$
+    - .*seixas$
+    - ^\d+(?:\.\d+)?\s*(?:stars?|/10|out of\s+\d+)$
+    - ^\d+\s*(?:st|nd|rd|th)?\s*(?:best|favorite|favourite).*$
+    - ^(?:top|best|greatest|favorite|favourite)\s+\d+.*$
+    - ^.*\btop\s*\d+\b.*$
+    - ^.*\b(?:best|greatest)\s+(?:songs?|tracks?|albums?)\b.*$
+    - ^(?:my|mine|personal)\s+(?:music|songs?|tracks?|albums?|collection|playlist).*$
+    - ^(?:i|we)\s+(?:own|have|like|love|want|need).*$
+    - ^.*\b(?:i|we)\s+(?:own|have|like|love|want|need)\b.*$
+    - ^.*\b(?:albums?|tracks?|songs?|cds?|vinyls?)\s+i\s+own\b.*$
+    - ^.*\b(?:owned|in my collection|my collection)\b.*$
+    - ^(?:last\.?\s*fm|lastfm|spotify|youtube|itunes|apple music|deezer|pandora|soundcloud|bandcamp).*$
+    - ^.*\b(?:scrobbl(?:e|ed|es|ing)|stream(?:able|ing)?|download(?:ed)?|radio edit)\b.*$
+    - ^(?:seen|saw)\s+live(?:\s+\d{4})?$
+    - ^.*\b(?:want|need)\s+to\s+(?:see|hear|listen).*$
+    - ^.*\b(?:recommend(?:ed|ation|ations)?|discovered|discovery|check\s+out)\b.*$
+    - ^(?:under|over)\s+\d+\s+(?:listeners?|plays?|scrobbles?)$
+    - ^\d+\s+(?:listeners?|plays?|scrobbles?)$
+    - ^.*\b(?:under|over)\s+\d+\s+(?:listeners?|plays?|scrobbles?)\b.*$
+    - ^(?:very\s+)?(?:good|great|awesome|amazing|beautiful|cool|nice|bad|shit|crap|boring|overrated|underrated)(?:\s+(?:song|track|album))?$
+    - ^(?:lol|wtf|omg|meh|wow|yay|haha).*$
+    - ^.*\b(?:makes me|reminds me|changed my life|guilty pleasure)\b.*$
+    - ^(?:song|songs|track|tracks|album|albums|artist|artists|single|singles|ep|lp|cd|vinyl|record|records|discography)$
+    - ^(?:official|video|music video|lyrics|lyric video|karaoke)$
+    - ^(?:любимое|любимые|любимая|любимый|нравится|круто|класс|классика|хит|песня|трек|альбом|плейлист)$
+    - ^.*\b(?:моя музыка|мои песни|моя коллекция|видел(?:а)? живьем|хочу послушать|хочу увидеть)\b.*$
+  banned_artists_from_tags:
+    rock:
+      - abba
+    japanese:
+      - ддт
+    metal:
+      - nirvana
+    punk:
+      - nirvana
+    punk rock:
+      - nirvana
+    post-punk:
+      - ППВК
+      - Первый Полёт в Космос
+  similar_tags:
+    - - latin
+      - latin music
+    - - house
+      - house music
+  similar_tags_patterns:
+    - - 2 tone
+      - ^(?:2[\W_]*tone|two[\W_]*tone)$
+    - - 2-step
+      - ^(?:2[\W_]*step|two[\W_]*step|two-step garage)$
+    - - acid breaks
+      - ^(?:acid[\W_]*breaks?)$
+    - - acid house
+      - ^(?:acid[\W_]*house)$
+    - - acid jazz
+      - ^(?:acid[\W_]*jazz)$
+    - - acid rock
+      - ^(?:acid[\W_]*rock)$
+    - - acid techno
+      - ^(?:acid[\W_]*techno)$
+    - - acid trance
+      - ^(?:acid[\W_]*trance)$
+    - - afro-cuban
+      - ^(?:afro[\W_]*cuban)$
+    - - afro-cuban jazz
+      - ^(?:afro[\W_]*cuban[\W_]*jazz)$
+    - - afrobeat
+      - ^(?:afro[\W_]*beat)$
+    - - afrobeats
+      - ^(?:afrobeats?|afro[\W_]*beats?)$
+    - - afropop
+      - ^(?:afro[\W_]*pop)$
+    - - alternative country
+      - ^(?:alt(?:ernative)?[\W_]*country)$
+    - - alternative dance
+      - ^(?:alt(?:ernative)?[\W_]*dance)$
+    - - alternative folk
+      - ^(?:alt(?:ernative)?[\W_]*folk)$
+    - - alternative hip hop
+      - ^(?:alt(?:ernative)?[\W_]*(?:hip[\W_]*hop|rap))$
+    - - alternative metal
+      - ^(?:alt(?:ernative)?[\W_]*metal)$
+    - - alternative pop
+      - ^(?:alt(?:ernative)?[\W_]*pop)$
+    - - alternative punk
+      - ^(?:alt(?:ernative)?[\W_]*punk)$
+    - - alternative r&b
+      - ^(?:alt(?:ernative)?[\W_]*r[\W_]*(?:&|and|n)[\W_]*b)$
+    - - alternative rock
+      - ^(?:alt(?:ernative)?[\W_]*rock)$
+    - - ambient dub
+      - ^(?:ambient[\W_]*dub)$
+    - - ambient house
+      - ^(?:ambient[\W_]*house)$
+    - - ambient pop
+      - ^(?:ambient[\W_]*pop)$
+    - - ambient techno
+      - ^(?:ambient[\W_]*techno)$
+    - - ambient trance
+      - ^(?:ambient[\W_]*trance)$
+    - - anti-folk
+      - ^(?:anti[\W_]*folk|antifolk)$
+    - - aor
+      - ^(?:album[\W_]*oriented[\W_]*rock|adult[\W_]*oriented[\W_]*rock)$
+    - - arabic
+      - ^(?:arabic|arab|middle[\W_]*eastern)$
+    - - arabic pop
+      - ^(?:arabic[\W_]*pop|arab[\W_]*pop)$
+    - - arena rock
+      - ^(?:arena[\W_]*rock)$
+    - - art pop
+      - ^(?:art[\W_]*pop)$
+    - - art punk
+      - ^(?:art[\W_]*punk)$
+    - - art rock
+      - ^(?:art[\W_]*rock)$
+    - - avant-garde
+      - ^(?:avant[\W_]*garde|avantgarde)$
+    - - avant-garde jazz
+      - ^(?:avant[\W_]*garde[\W_]*jazz|avantgarde[\W_]*jazz)$
+    - - avant-garde metal
+      - ^(?:avant[\W_]*garde[\W_]*metal|avantgarde[\W_]*metal)$
+    - - avant-garde pop
+      - ^(?:avant[\W_]*garde[\W_]*pop|avantgarde[\W_]*pop)$
+    - - balkan
+      - ^(?:balkan|балканск.*)$
+    - - baroque pop
+      - ^(?:baroque[\W_]*pop)$
+    - - bass house
+      - ^(?:bass[\W_]*house)$
+    - - bassline
+      - ^(?:bassline|bass[\W_]*line)$
+    - - berlin school
+      - ^(?:berlin[\W_]*school)$
+    - - big beat
+      - ^(?:big[\W_]*beat)$
+    - - big room house
+      - ^(?:big[\W_]*room[\W_]*house)$
+    - - big room trance
+      - ^(?:big[\W_]*room[\W_]*trance)$
+    - - blackgaze
+      - ^(?:black[\W_]*gaze)$
+    - - blue-eyed soul
+      - ^(?:blue[\W_]*eyed[\W_]*soul)$
+    - - boogie-woogie
+      - ^(?:boogie[\W_]*woogie)$
+    - - boom bap
+      - ^(?:boom[\W_]*bap)$
+    - - breakbeat
+      - ^(?:break[\W_]*beat|breakbeats?)$
+    - - breakcore
+      - ^(?:break[\W_]*core)$
+    - - breaks
+      - ^(?:breaks)$
+    - - britpop
+      - ^(?:brit[\W_]*pop)$
+    - - brostep
+      - ^(?:bro[\W_]*step)$
+    - - bubblegum pop
+      - ^(?:bubblegum[\W_]*pop|bubble[\W_]*gum[\W_]*pop)$
+    - - c-pop
+      - ^(?:c[\W_]*pop|chinese[\W_]*pop)$
+    - - c86
+      - ^(?:c[\W_]*86)$
+    - - chamber folk
+      - ^(?:chamber[\W_]*folk)$
+    - - chamber pop
+      - ^(?:chamber[\W_]*pop)$
+    - - chanson française
+      - ^(?:chanson[\W_]*fran[cç]aise|french[\W_]*chanson)$
+    - - chicago blues
+      - ^(?:chicago[\W_]*blues)$
+    - - chicago drill
+      - ^(?:chicago[\W_]*drill)$
+    - - chicago house
+      - ^(?:chicago[\W_]*house)$
+    - - chillstep
+      - ^(?:chill[\W_]*step)$
+    - - chillsynth
+      - ^(?:chill[\W_]*synth)$
+    - - chillwave
+      - ^(?:chill[\W_]*wave)$
+    - - christian hip hop
+      - ^(?:christian[\W_]*(?:hip[\W_]*hop|rap))$
+    - - christian metal
+      - ^(?:christian[\W_]*metal)$
+    - - christian rock
+      - ^(?:christian[\W_]*rock)$
+    - - coldwave
+      - ^(?:cold[\W_]*wave)$
+    - - conscious rap
+      - ^(?:conscious[\W_]*(?:rap|hip[\W_]*hop))$
+    - - contemporary folk
+      - ^(?:contemporary[\W_]*folk)$
+    - - contemporary jazz
+      - ^(?:contemporary[\W_]*jazz)$
+    - - contemporary r&b
+      - ^(?:contemporary[\W_]*r[\W_]*(?:&|and|n)[\W_]*b)$
+    - - cool jazz
+      - ^(?:cool[\W_]*jazz)$
+    - - country blues
+      - ^(?:country[\W_]*blues)$
+    - - country folk
+      - ^(?:country[\W_]*folk)$
+    - - country pop
+      - ^(?:country[\W_]*pop)$
+    - - country rap
+      - ^(?:country[\W_]*(?:rap|hip[\W_]*hop))$
+    - - country rock
+      - ^(?:country[\W_]*rock)$
+    - - country soul
+      - ^(?:country[\W_]*soul)$
+    - - cowpunk
+      - ^(?:cow[\W_]*punk)$
+    - - crossover thrash
+      - ^(?:crossover[\W_]*thrash)$
+    - - crust punk
+      - ^(?:crust[\W_]*punk)$
+    - - cybergrind
+      - ^(?:cyber[\W_]*grind)$
+    - - d-beat
+      - ^(?:d[\W_]*beat)$
+    - - dance-pop
+      - ^(?:dance[\W_]*pop|dance-pop)$
+    - - dance-punk
+      - ^(?:dance[\W_]*punk|dance-punk)$
+    - - dark ambient
+      - ^(?:dark[\W_]*ambient)$
+    - - dark cabaret
+      - ^(?:dark[\W_]*cabaret)$
+    - - dark electro
+      - ^(?:dark[\W_]*electro)$
+    - - dark folk
+      - ^(?:dark[\W_]*folk)$
+    - - dark jazz
+      - ^(?:dark[\W_]*jazz)$
+    - - dark synth
+      - ^(?:dark[\W_]*synth|dark[\W_]*synthwave|darkwave[\W_]*synth)$
+    - - dark wave
+      - ^(?:dark[\W_]*wave|darkwave)$
+    - - darksynth
+      - ^(?:darksynth)$
+    - - death industrial
+      - ^(?:death[\W_]*industrial)$
+    - - death metal
+      - ^(?:death[\W_]*metal)$
+    - - death-doom metal
+      - ^(?:death[\W_]*doom(?:[\W_]*metal)?)$
+    - - deathrock
+      - ^(?:death[\W_]*rock)$
+    - - deathstep
+      - ^(?:death[\W_]*step)$
+    - - deep funk
+      - ^(?:deep[\W_]*funk)$
+    - - deep house
+      - ^(?:deep[\W_]*house)$
+    - - deep soul
+      - ^(?:deep[\W_]*soul)$
+    - - deep techno
+      - ^(?:deep[\W_]*techno)$
+    - - delta blues
+      - ^(?:delta[\W_]*blues)$
+    - - desert blues
+      - ^(?:desert[\W_]*blues)$
+    - - desert rock
+      - ^(?:desert[\W_]*rock)$
+    - - detroit techno
+      - ^(?:detroit[\W_]*techno)$
+    - - djent
+      - ^(?:djent)$
+    - - doom metal
+      - ^(?:doom[\W_]*metal)$
+    - - doomcore
+      - ^(?:doom[\W_]*core)$
+    - - doomgaze
+      - ^(?:doom[\W_]*gaze)$
+    - - downtempo
+      - ^(?:down[\W_]*tempo)$
+    - - dream pop
+      - ^(?:dream[\W_]*pop)$
+    - - drill
+      - ^(?:drill|drill[\W_]*music)$
+    - - drone metal
+      - ^(?:drone[\W_]*metal)$
+    - - drum and bass
+      - ^(?:drum[\W_]*(?:and|&|n)[\W_]*bass|d[\W_]*&[\W_]*b|dnb)$
+    - - dub techno
+      - ^(?:dub[\W_]*techno)$
+    - - dubtronica
+      - ^(?:dub[\W_]*tronica)$
+    - - dungeon synth
+      - ^(?:dungeon[\W_]*synth)$
+    - - eastern european folk
+      - ^(?:eastern[\W_]*european[\W_]*folk|east[\W_]*european[\W_]*folk|восточно.?европейск.*фолк)$
+    - - ebm
+      - ^(?:ebm|electronic[\W_]*body[\W_]*music)$
+    - - electro swing
+      - ^(?:electro[\W_]*swing)$
+    - - electro-industrial
+      - ^(?:electro[\W_]*industrial)$
+    - - electroacoustic
+      - ^(?:electro[\W_]*acoustic)$
+    - - electroclash
+      - ^(?:electro[\W_]*clash)$
+    - - electropop
+      - ^(?:electro[\W_]*pop|electropop)$
+    - - electropunk
+      - ^(?:electro[\W_]*punk|electropunk)$
+    - - emo rap
+      - ^(?:emo[\W_]*rap)$
+    - - ethno jazz
+      - ^(?:ethno[\W_]*jazz|ethnic[\W_]*jazz)$
+    - - euro house
+      - ^(?:euro[\W_]*house)$
+    - - eurobeat
+      - ^(?:euro[\W_]*beat)$
+    - - eurodance
+      - ^(?:euro[\W_]*dance)$
+    - - experimental rock
+      - ^(?:experimental[\W_]*rock)$
+    - - folk jazz
+      - ^(?:folk[\W_]*jazz)$
+    - - folk metal
+      - ^(?:folk[\W_]*metal)$
+    - - folk pop
+      - ^(?:folk[\W_]*pop)$
+    - - folk punk
+      - ^(?:folk[\W_]*punk)$
+    - - folk rock
+      - ^(?:folk[\W_]*rock)$
+    - - folktronica
+      - ^(?:folk[\W_]*tronica)$
+    - - freak folk
+      - ^(?:freak[\W_]*folk)$
+    - - french house
+      - ^(?:french[\W_]*house)$
+    - - funk metal
+      - ^(?:funk[\W_]*metal)$
+    - - funk rock
+      - ^(?:funk[\W_]*rock)$
+    - - fusion jazz
+      - ^(?:fusion[\W_]*jazz)$
+    - - future bass
+      - ^(?:future[\W_]*bass)$
+    - - future funk
+      - ^(?:future[\W_]*funk)$
+    - - future garage
+      - ^(?:future[\W_]*garage)$
+    - - g-funk
+      - ^(?:g[\W_]*funk|gangsta[\W_]*funk)$
+    - - garage house
+      - ^(?:garage[\W_]*house)$
+    - - garage rock
+      - ^(?:garage[\W_]*rock)$
+    - - glam metal
+      - ^(?:glam[\W_]*metal)$
+    - - glam rock
+      - ^(?:glam[\W_]*rock)$
+    - - glitch hop
+      - ^(?:glitch[\W_]*hop)$
+    - - goa trance
+      - ^(?:goa[\W_]*trance)$
+    - - goregrind
+      - ^(?:gore[\W_]*grind)$
+    - - goth
+      - ^(?:goth)$
+    - - gothic metal
+      - ^(?:goth(?:ic)?[\W_]*metal)$
+    - - gothic rock
+      - ^(?:goth(?:ic)?[\W_]*rock)$
+    - - gregorian chant
+      - ^(?:gregorian[\W_]*chant)$
+    - - groove metal
+      - ^(?:groove[\W_]*metal)$
+    - - hard bop
+      - ^(?:hard[\W_]*bop)$
+    - - hard rock
+      - ^(?:hard[\W_]*rock)$
+    - - hard trance
+      - ^(?:hard[\W_]*trance)$
+    - - hardvapour
+      - ^(?:hard[\W_]*vapou?r)$
+    - - hi-nrg
+      - ^(?:hi[\W_]*nrg|high[\W_]*energy)$
+    - - hip hop
+      - ^(?:hip[\W_]*hop|hip-hop)$
+    - - horror punk
+      - ^(?:horror[\W_]*punk)$
+    - - hypnagogic pop
+      - ^(?:hypnagogic[\W_]*pop)$
+    - - illbient
+      - ^(?:illbient)$
+    - - indian classical
+      - ^(?:indian[\W_]*classical)$
+    - - indie folk
+      - ^(?:indie[\W_]*folk)$
+    - - indie pop
+      - ^(?:indie[\W_]*pop)$
+    - - indie rock
+      - ^(?:indie[\W_]*rock)$
+    - - industrial ambient
+      - ^(?:industrial[\W_]*ambient)$
+    - - industrial metal
+      - ^(?:industrial[\W_]*metal)$
+    - - industrial techno
+      - ^(?:industrial[\W_]*techno)$
+    - - italo-disco
+      - ^(?:italo[\W_]*disco)$
+    - - j-pop
+      - ^(?:j[\W_]*pop|japanese[\W_]*pop)$
+    - - j-rock
+      - ^(?:j[\W_]*rock|japanese[\W_]*rock)$
+    - - jangle pop
+      - ^(?:jangle[\W_]*pop)$
+    - - jazz fusion
+      - ^(?:jazz[\W_]*fusion|fusion)$
+    - - jazz rap
+      - ^(?:jazz[\W_]*(?:rap|hip[\W_]*hop))$
+    - - jazz rock
+      - ^(?:jazz[\W_]*rock)$
+    - - jazz-funk
+      - ^(?:jazz[\W_]*funk)$
+    - - jazztronica
+      - ^(?:jazz[\W_]*tronica)$
+    - - k-pop
+      - ^(?:k[\W_]*pop|korean[\W_]*pop)$
+    - - kosmische musik
+      - ^(?:kosmische[\W_]*musik|cosmic[\W_]*music)$
+    - - latin jazz
+      - ^(?:latin[\W_]*jazz)$
+    - - latin pop
+      - ^(?:latin[\W_]*pop)$
+    - - latin rock
+      - ^(?:latin[\W_]*rock)$
+    - - liquid funk
+      - ^(?:liquid[\W_]*funk)$
+    - - lo-fi
+      - ^(?:lo[\W_]*fi|lofi)$
+    - - math rock
+      - ^(?:math[\W_]*rock)$
+    - - mathcore
+      - ^(?:math[\W_]*core)$
+    - - medieval folk
+      - ^(?:medieval[\W_]*folk)$
+    - - melodic black metal
+      - ^(?:melodic[\W_]*black[\W_]*metal)$
+    - - melodic death metal
+      - ^(?:melodic[\W_]*death[\W_]*metal|melodeath)$
+    - - melodic metalcore
+      - ^(?:melodic[\W_]*metalcore)$
+    - - metalcore
+      - ^(?:metal[\W_]*core)$
+    - - minimal synth
+      - ^(?:minimal[\W_]*synth)$
+    - - minimal techno
+      - ^(?:minimal[\W_]*techno)$
+    - - minimal wave
+      - ^(?:minimal[\W_]*wave)$
+    - - neo-classical
+      - ^(?:neo[\W_]*classical|neoclassical)$
+    - - neo-prog
+      - ^(?:neo[\W_]*prog|neo[\W_]*progressive)$
+    - - neo-psychedelia
+      - ^(?:neo[\W_]*psychedelia|neo[\W_]*psychedelic)$
+    - - neo-soul
+      - ^(?:neo[\W_]*soul|neosoul)$
+    - - neofolk
+      - ^(?:neo[\W_]*folk)$
+    - - new age
+      - ^(?:new[\W_]*age)$
+    - - new beat
+      - ^(?:new[\W_]*beat)$
+    - - new jack swing
+      - ^(?:new[\W_]*jack[\W_]*swing)$
+    - - new rave
+      - ^(?:new[\W_]*rave)$
+    - - new romantic
+      - ^(?:new[\W_]*romantic)$
+    - - new wave
+      - ^(?:new[\W_]*wave)$
+    - - no wave
+      - ^(?:no[\W_]*wave)$
+    - - northern soul
+      - ^(?:northern[\W_]*soul)$
+    - - nu jazz
+      - ^(?:nu[\W_]*jazz|new[\W_]*jazz)$
+    - - nu metal
+      - ^(?:nu[\W_]*metal|new[\W_]*metal)$
+    - - old school hip hop
+      - ^(?:old[\W_]*school[\W_]*(?:hip[\W_]*hop|rap))$
+    - - outlaw country
+      - ^(?:outlaw[\W_]*country)$
+    - - p-funk
+      - ^(?:p[\W_]*funk|parliament[\W_]*funk)$
+    - - philly soul
+      - ^(?:philly[\W_]*soul|philadelphia[\W_]*soul)$
+    - - pop punk
+      - ^(?:pop[\W_]*punk)$
+    - - pop rock
+      - ^(?:pop[\W_]*rock)$
+    - - post-black metal
+      - ^(?:post[\W_]*black[\W_]*metal)$
+    - - post-bop
+      - ^(?:post[\W_]*bop)$
+    - - post-grunge
+      - ^(?:post[\W_]*grunge)$
+    - - post-hardcore
+      - ^(?:post[\W_]*hardcore)$
+    - - post-industrial
+      - ^(?:post[\W_]*industrial)$
+    - - post-metal
+      - ^(?:post[\W_]*metal)$
+    - - post-punk
+      - ^(?:post[\W_]*punk)$
+    - - post-punk revival
+      - ^(?:post[\W_]*punk[\W_]*revival)$
+    - - post-rock
+      - ^(?:post[\W_]*rock)$
+    - - power metal
+      - ^(?:power[\W_]*metal)$
+    - - power pop
+      - ^(?:power[\W_]*pop)$
+    - - progressive house
+      - ^(?:progressive[\W_]*house|prog[\W_]*house)$
+    - - progressive metal
+      - ^(?:progressive[\W_]*metal|prog[\W_]*metal)$
+    - - progressive rock
+      - ^(?:progressive[\W_]*rock|prog[\W_]*rock)$
+    - - progressive trance
+      - ^(?:progressive[\W_]*trance|prog[\W_]*trance)$
+    - - proto-punk
+      - ^(?:proto[\W_]*punk)$
+    - - psychedelic folk
+      - ^(?:psychedelic[\W_]*folk|psych[\W_]*folk)$
+    - - psychedelic rock
+      - ^(?:psychedelic[\W_]*rock|psych[\W_]*rock)$
+    - - psytrance
+      - ^(?:psy[\W_]*trance|psytrance)$
+    - - punk rock
+      - ^(?:punk[\W_]*rock)$
+    - - r&b
+      - ^(?:r[\W_]*(?:&|and|n)[\W_]*b|rhythm[\W_]*(?:&|and)[\W_]*blues)$
+    - - ragga
+      - ^(?:ragga)$
+    - - raggamuffin
+      - ^(?:ragga[\W_]*muffin|raggamuffin)$
+    - - rap metal
+      - ^(?:rap[\W_]*metal)$
+    - - rap rock
+      - ^(?:rap[\W_]*rock)$
+    - - reggaeton
+      - ^(?:reggae[\W_]*ton|reggaeton)$
+    - - retrowave
+      - ^(?:retro[\W_]*wave|outrun)$
+    - - riot grrrl
+      - ^(?:riot[\W_]*grrr?l)$
+    - - rock and roll
+      - ^(?:rock[\W_]*(?:and|&|n)[\W_]*roll|rock'n'roll|rock[\W_]*'n'[\W_]*roll)$
+    - - roots reggae
+      - ^(?:roots[\W_]*reggae)$
+    - - russian rock
+      - ^(?:russian[\W_]*rock|русск(?:ий|ии|iй)[\W_]+рок)$
+    - - samba-jazz
+      - ^(?:samba[\W_]*jazz)$
+    - - singer-songwriter
+      - ^(?:singer[\W_]*songwriter)$
+    - - ska punk
+      - ^(?:ska[\W_]*punk)$
+    - - slowcore
+      - ^(?:slow[\W_]*core)$
+    - - sludge metal
+      - ^(?:sludge[\W_]*metal)$
+    - - smooth jazz
+      - ^(?:smooth[\W_]*jazz)$
+    - - soft rock
+      - ^(?:soft[\W_]*rock)$
+    - - sophisti-pop
+      - ^(?:sophisti[\W_]*pop|sophistipop)$
+    - - soul jazz
+      - ^(?:soul[\W_]*jazz)$
+    - - southern gothic
+      - ^(?:southern[\W_]*gothic)$
+    - - southern hip hop
+      - ^(?:southern[\W_]*(?:hip[\W_]*hop|rap)|dirty[\W_]*south)$
+    - - southern rock
+      - ^(?:southern[\W_]*rock)$
+    - - southern soul
+      - ^(?:southern[\W_]*soul)$
+    - - sovietwave
+      - ^(?:soviet[\W_]*wave|совет(?:вейв|wave)|советская[\W_]*волна)$
+    - - space disco
+      - ^(?:space[\W_]*disco|cosmic[\W_]*disco)$
+    - - space rock
+      - ^(?:space[\W_]*rock)$
+    - - space synth
+      - ^(?:space[\W_]*synth)$
+    - - speed metal
+      - ^(?:speed[\W_]*metal)$
+    - - speedcore
+      - ^(?:speed[\W_]*core)$
+    - - stoner metal
+      - ^(?:stoner[\W_]*metal)$
+    - - stoner rock
+      - ^(?:stoner[\W_]*rock)$
+    - - surf rock
+      - ^(?:surf[\W_]*rock)$
+    - - symphonic metal
+      - ^(?:symphonic[\W_]*metal)$
+    - - symphonic rock
+      - ^(?:symphonic[\W_]*rock)$
+    - - synth pop
+      - ^(?:synth[\W_]*pop|synthpop)$
+    - - synthwave
+      - ^(?:synth[\W_]*wave)$
+    - - tech house
+      - ^(?:tech[\W_]*house)$
+    - - thrash metal
+      - ^(?:thrash[\W_]*metal)$
+    - - thrashcore
+      - ^(?:thrash[\W_]*core)$
+    - - traditional folk
+      - ^(?:traditional[\W_]*folk|trad[\W_]*folk)$
+    - - tribal house
+      - ^(?:tribal[\W_]*house)$
+    - - trip hop
+      - ^(?:trip[\W_]*hop)$
+    - - tropicália
+      - ^(?:tropicalia|tropicália)$
+    - - turkish rock
+      - ^(?:turkish[\W_]*rock)$
+    - - uk funky
+      - ^(?:uk[\W_]*funky)$
+    - - uk garage
+      - ^(?:uk[\W_]*garage|ukg)$
+    - - vaportrap
+      - ^(?:vapor[\W_]*trap)$
+    - - vaporwave
+      - ^(?:vapor[\W_]*wave)$
+    - - viking metal
+      - ^(?:viking[\W_]*metal)$
+    - - vocal jazz
+      - ^(?:vocal[\W_]*jazz)$
+    - - vocal trance
+      - ^(?:vocal[\W_]*trance)$
+    - - west coast hip hop
+      - ^(?:west[\W_]*coast[\W_]*(?:hip[\W_]*hop|rap))$
+    - - western swing
+      - ^(?:western[\W_]*swing)$
+    - - witch house
+      - ^(?:witch[\W_]*house)$
+    - - world music
+      - ^(?:world[\W_]*music)$
+    - - yacht rock
+      - ^(?:yacht[\W_]*rock)$
+    - - 50s
+      - (?:50|50\'s|fifties|1950\'s?|1950s)
+    - - 60s
+      - (?:60|60\'s|sixties|1960\'s?|1960s)
+    - - 70s
+      - (?:70|70\'s|seventies|1970\'s?|1970s)
+    - - 80s
+      - (?:80|80\'s|eighties|1980\'s?|1980s)
+    - - 90s
+      - (?:90|90\'s|nineties|1990\'s?|1990s)
+    - - 00s
+      - (?:00\'s|two thousands|2000s|2000-2009|aughts|noughties)
+    - - male vocalist
+      - male\s(?:vocals|vocalists?)
+    - - instrumental
+      - (?:no\svocals|instrumental\smusic)
+    - - female vocalist
+      - female\svoc.*
+    - - analog synth
+      - (?:analog\ssynth|analog\ssynth\W{0,1}music)
+      - аналоговые синтезаторы
+    - - american
+      - (?:usa|united states|american artists?)
+    - - british
+      - (?:uk|united kingdom|british artists?)
+    - - french
+      - (?:france|french artists?)
+    - - german
+      - (?:germany|german artists?)
+    - - italian
+      - (?:italy|italian artists?)
+    - - japanese
+      - (?:japan|japanese artists?)
+    - - korean
+      - (?:korea|korean artists?)
+    - - russian
+      - (?:russia|russian artists?)
+      - rus
+    - - house
+      - house music
+    - - trance
+      - trance music
+    - - dubstep
+      - dubstep music
+    - - electronic
+      - electronica
+    - - techno
+      - tehno
+    - - dance
+      - dance\W{0,1}pop
+    - - disco
+      - euro\W{0,1}disco
+    - - electroswing
+      - electro\W{0,1}swing
+    - - metal
+      - heavy\W{0,1}metal
+      - metal\smusic
+    - - rock
+      - rock\W{0,1}music
+    - - pop
+      - pop music
+    - - euro pop
+      - euro\W{0,1}pop
+    - - jazz
+      - jazz music
+    - - classical
+      - classical music
+    - - soul
+      - soul music
+    - - reggae
+      - reggae music
+    - - latin
+      - latin music
+    - - blues
+      - blues music
+    - - punk
+      - punk music
+    - - country
+      - (?:country\smusic|country\sand\swestern)
+    - - folk
+      - fol[ck](?:|\smusic)
+    - - mid-tempo
+      - средний темп
+      - мидтемпо
+    - - industrial
+      - industrial music
+      - индустриальн(ый|ая)
+    - - live
+      - (?:live\sperformance|concert\srecording)
+    - - studio
+      - studio\srecording
+    - - remix
+      - (?:remixed|remix\sversion)
+    - - cover
+      - (?:cover\sversion|covered\sby)
+    - - original
+      - original\sversion
+    - - acoustic
+      - (?:unplugged|acoustic\smusic)
+    - - indie
+      - indie\W{0,1}rock
+    - - funny
+      - funny\W{0,1}song
+      - fun
+    - - indietronica
+      - indie\W{0,1}tronica
+    - - celtic
+      - (?:celtic|irish\W{0,1}folk|scottish\W{0,1}folk)
+    - - abstract hip hop
+      - ^(?:abstract[\W_]*hip[\W_]*hop|abstract[\W_]+hip[\W_]+hop)$
+    - - acoustic rock
+      - ^(?:acoustic[\W_]*rock|acoustic[\W_]+rock)$
+    - - african
+      - ^(?:african)$
+    - - alternative
+      - ^(?:alternative)$
+    - - ambient
+      - ^(?:ambient)$
+    - - americana
+      - ^(?:americana)$
+    - - anarcho-punk
+      - ^(?:anarcho[\W_]*punk|anarcho[\W_]+punk)$
+    - - anatolian rock
+      - ^(?:anatolian[\W_]*rock|anatolian[\W_]+rock)$
+    - - balearic
+      - ^(?:balearic)$
+    - - baroque
+      - ^(?:baroque)$
+    - - bebop
+      - ^(?:bebop)$
+    - - big band
+      - ^(?:big[\W_]*band|big[\W_]+band)$
+    - - black metal
+      - ^(?:black[\W_]*metal|black[\W_]+metal)$
+    - - bluegrass
+      - ^(?:bluegrass)$
+    - - blues rock
+      - ^(?:blues[\W_]*rock|blues[\W_]+rock)$
+    - - bollywood
+      - ^(?:bollywood)$
+    - - boogie
+      - ^(?:boogie)$
+    - - bossa nova
+      - ^(?:bossa[\W_]*nova|bossa[\W_]+nova)$
+    - - cajun
+      - ^(?:cajun)$
+    - - calypso
+      - ^(?:calypso)$
+    - - canterbury scene
+      - ^(?:canterbury[\W_]*scene|canterbury[\W_]+scene)$
+    - - chamber music
+      - ^(?:chamber[\W_]*music|chamber[\W_]+music)$
+    - - chanson
+      - ^(?:chanson)$
+    - - chillout
+      - ^(?:chillout)$
+    - - chiptune
+      - ^(?:chiptune)$
+    - - cinematic
+      - ^(?:cinematic)$
+    - - cinematic ambient
+      - ^(?:cinematic[\W_]*ambient|cinematic[\W_]+ambient)$
+    - - city pop
+      - ^(?:city[\W_]*pop|city[\W_]+pop)$
+    - - classic rock
+      - ^(?:classic[\W_]*rock|classic[\W_]+rock)$
+    - - cloud rap
+      - ^(?:cloud[\W_]*rap|cloud[\W_]+rap)$
+    - - complextro
+      - ^(?:complextro)$
+    - - contemporary classical
+      - ^(?:contemporary[\W_]*classical|contemporary[\W_]+classical)$
+    - - crunk
+      - ^(?:crunk)$
+    - - cumbia
+      - ^(?:cumbia)$
+    - - dancehall
+      - ^(?:dancehall)$
+    - - darkstep
+      - ^(?:darkstep)$
+    - - deathcore
+      - ^(?:deathcore)$
+    - - digital hardcore
+      - ^(?:digital[\W_]*hardcore|digital[\W_]+hardcore)$
+    - - dirty south
+      - ^(?:dirty[\W_]*south|dirty[\W_]+south)$
+    - - dixieland
+      - ^(?:dixieland)$
+    - - drone
+      - ^(?:drone)$
+    - - dub
+      - ^(?:dub)$
+    - - edm
+      - ^(?:edm)$
+    - - electro
+      - ^(?:electro)$
+    - - electronica
+      - ^(?:electronica)$
+    - - emo
+      - ^(?:emo)$
+    - - ethereal
+      - ^(?:ethereal)$
+    - - experimental
+      - ^(?:experimental)$
+    - - fado
+      - ^(?:fado)$
+    - - flamenco
+      - ^(?:flamenco)$
+    - - free jazz
+      - ^(?:free[\W_]*jazz|free[\W_]+jazz)$
+    - - funk
+      - ^(?:funk)$
+    - - gabber
+      - ^(?:gabber)$
+    - - garage
+      - ^(?:garage)$
+    - - glitch
+      - ^(?:glitch)$
+    - - gospel
+      - ^(?:gospel)$
+    - - grime
+      - ^(?:grime)$
+    - - grindcore
+      - ^(?:grindcore)$
+    - - grunge
+      - ^(?:grunge)$
+    - - hardcore
+      - ^(?:hardcore)$
+    - - hardcore punk
+      - ^(?:hardcore[\W_]*punk|hardcore[\W_]+punk)$
+    - - hardstyle
+      - ^(?:hardstyle)$
+    - - hauntology
+      - ^(?:hauntology)$
+    - - heavy metal
+      - ^(?:heavy[\W_]*metal|heavy[\W_]+metal)$
+    - - highlife
+      - ^(?:highlife)$
+    - - horrorcore
+      - ^(?:horrorcore)$
+    - - hyperpop
+      - ^(?:hyperpop)$
+    - - idm
+      - ^(?:idm)$
+    - - jam band
+      - ^(?:jam[\W_]*band|jam[\W_]+band)$
+    - - jug band
+      - ^(?:jug[\W_]*band|jug[\W_]+band)$
+    - - jungle
+      - ^(?:jungle)$
+    - - klezmer
+      - ^(?:klezmer)$
+    - - krautrock
+      - ^(?:krautrock)$
+    - - lounge
+      - ^(?:lounge)$
+    - - madchester
+      - ^(?:madchester)$
+    - - makossa
+      - ^(?:makossa)$
+    - - martial industrial
+      - ^(?:martial[\W_]*industrial|martial[\W_]+industrial)$
+    - - medieval
+      - ^(?:medieval)$
+    - - merengue
+      - ^(?:merengue)$
+    - - minimal
+      - ^(?:minimal)$
+    - - moombahton
+      - ^(?:moombahton)$
+    - - motown
+      - ^(?:motown)$
+    - - neotraditional country
+      - ^(?:neotraditional[\W_]*country|neotraditional[\W_]+country)$
+    - - noise
+      - ^(?:noise)$
+    - - noise rock
+      - ^(?:noise[\W_]*rock|noise[\W_]+rock)$
+    - - oi!
+      - ^(?:oi!)$
+    - - opera
+      - ^(?:opera)$
+    - - orchestral
+      - ^(?:orchestral)$
+    - - phonk
+      - ^(?:phonk)$
+    - - polka
+      - ^(?:polka)$
+    - - psychedelic
+      - ^(?:psychedelic)$
+    - - psychobilly
+      - ^(?:psychobilly)$
+    - - punk blues
+      - ^(?:punk[\W_]*blues|punk[\W_]+blues)$
+    - - qawwali
+      - ^(?:qawwali)$
+    - - queercore
+      - ^(?:queercore)$
+    - - raga rock
+      - ^(?:raga[\W_]*rock|raga[\W_]+rock)$
+    - - ragtime
+      - ^(?:ragtime)$
+    - - rap
+      - ^(?:rap)$
+    - - renaissance
+      - ^(?:renaissance)$
+    - - riddim
+      - ^(?:riddim)$
+    - - rockabilly
+      - ^(?:rockabilly)$
+    - - salsa
+      - ^(?:salsa)$
+    - - samba
+      - ^(?:samba)$
+    - - screamo
+      - ^(?:screamo)$
+    - - shoegaze
+      - ^(?:shoegaze)$
+    - - ska
+      - ^(?:ska)$
+    - - skiffle
+      - ^(?:skiffle)$
+    - - soca
+      - ^(?:soca)$
+    - - spoken word
+      - ^(?:spoken[\W_]*word|spoken[\W_]+word)$
+    - - surf
+      - ^(?:surf)$
+    - - swing
+      - ^(?:swing)$
+    - - synth-pop
+      - ^(?:synth[\W_]*pop|synth[\W_]+pop)$
+    - - tango
+      - ^(?:tango)$
+    - - teen pop
+      - ^(?:teen[\W_]*pop|teen[\W_]+pop)$
+    - - trap
+      - ^(?:trap)$
+    - - turntablism
+      - ^(?:turntablism)$
+    - - vapor
+      - ^(?:vapor)$
+    - - zouk
+      - ^(?:zouk)$
+    - - zydeco
+      - ^(?:zydeco)$
+  genius_replacements:
+    - - zемфира
+      - земфира
