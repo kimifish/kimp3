@@ -13,7 +13,6 @@ from kimp3.models import AbstractSongDir, AudioTags
 from kimp3.strings_operations import string_similarity
 from kimp3.tag_processing import NUMBER_OF_TAGS, TAG_MIN_WEIGHT, process_lastfm_tags
 
-
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 network: pylast.LastFMNetwork
 
@@ -34,11 +33,17 @@ class TaggedTrack:
         self.artist: pylast.Artist = network.get_artist(tags.artist)
         self.artist.name = self._correct_artist_name(self.artist)
 
-        self.track: pylast.Track = network.get_track(self.artist.name or tags.artist, tags.title)
+        self.track: pylast.Track = network.get_track(
+            self.artist.name or tags.artist, tags.title
+        )
         self.track.title = self._correct_track_title(self.track)
 
-        self.album: pylast.Album = network.get_album(self.artist.name or tags.artist, tags.album)
-        self.album_artist: pylast.Artist = network.get_artist(tags.album_artist or tags.artist)
+        self.album: pylast.Album = network.get_album(
+            self.artist.name or tags.artist, tags.album
+        )
+        self.album_artist: pylast.Artist = network.get_artist(
+            tags.album_artist or tags.artist
+        )
         self.track_number: Optional[int] = tags.track_number
         self.total_tracks: Optional[int] = tags.total_tracks
         self.disc_number: Optional[int] = tags.disc_number
@@ -46,8 +51,8 @@ class TaggedTrack:
         self.year: Optional[int] = tags.year
         self.update_album_data()
 
-        self.genre: str = tags.genre
-        self.lastfm_tags: str | list[str] = tags.lastfm_tags
+        self.genres: list[str] = list(tags.genres)
+        self.lastfm_tags: list[str] = list(tags.lastfm_tags)
         self.update_tags()
 
         self.rating: str = tags.rating
@@ -63,14 +68,22 @@ class TaggedTrack:
             "album": self.album.title if self.album else None,
             "album_artist": self.album_artist.name if self.album_artist else None,
             "title": self.track.title if self.track else None,
-            "track": f"{self.track_number}/{self.total_tracks}" if self.track_number else None,
-            "disc": f"{self.disc_number}/{self.total_discs}" if self.disc_number else None,
+            "track": (
+                f"{self.track_number}/{self.total_tracks}"
+                if self.track_number
+                else None
+            ),
+            "disc": (
+                f"{self.disc_number}/{self.total_discs}" if self.disc_number else None
+            ),
             "year": self.year if self.year else None,
-            "genre": self.genre if self.genre else None,
+            "genre": self.genres if self.genres else None,
             "lastfm_tags": self.lastfm_tags if self.lastfm_tags else None,
             "rating": self.rating if self.rating else None,
         }
-        return pretty_repr({key: value for key, value in track_info.items() if value is not None})
+        return pretty_repr(
+            {key: value for key, value in track_info.items() if value is not None}
+        )
 
     def _correct_artist_name(self, artist: pylast.Artist) -> Optional[str]:
         if not artist or not artist.name:
@@ -103,7 +116,9 @@ class TaggedTrack:
             best_album = None
 
             for iter_album in top_albums:
-                current_ratio = string_similarity(iter_album.item.title, self.tags.album)
+                current_ratio = string_similarity(
+                    iter_album.item.title, self.tags.album
+                )
                 if current_ratio > best_ratio:
                     best_ratio = current_ratio
                     corrected = iter_album.item.title
@@ -114,14 +129,20 @@ class TaggedTrack:
                     lastfm_track_count = len(list(best_album.get_tracks()))
                     if lastfm_track_count != self.songdir.track_count:
                         log.warning(f"Track count mismatch for '{best_album.title}':")
-                        log.warning(f"Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}")
+                        log.warning(
+                            f"Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}"
+                        )
                 except pylast.WSError:
-                    log.warning(f"Failed to get track count for album '{best_album.title}'")
+                    log.warning(
+                        f"Failed to get track count for album '{best_album.title}'"
+                    )
 
             _album_corrections[cache_key] = corrected
             album.title = corrected
         except pylast.WSError:
-            log.warning(f"Last.FM: Album not found - {self.tags.artist} - {self.tags.album}")
+            log.warning(
+                f"Last.FM: Album not found - {self.tags.artist} - {self.tags.album}"
+            )
             _album_corrections[cache_key] = album.title
         return album.title
 
@@ -131,7 +152,9 @@ class TaggedTrack:
             if title == self.artist.name and title != self.tags.title:
                 title = self.tags.title
         except pylast.WSError:
-            log.warning(f"Last.FM: Track not found - {self.artist.name} - {self.tags.title}")
+            log.warning(
+                f"Last.FM: Track not found - {self.artist.name} - {self.tags.title}"
+            )
             title = self.tags.title
         return title
 
@@ -150,17 +173,19 @@ class TaggedTrack:
 
     def update_tags(self) -> None:
         if cfg.tags.skip_existing_tags and self.tags.genre and self.tags.lastfm_tags:
-            log.debug(f"Skipping tags fetch for {self.artist.name} - {self.album.title} (tags already exist)")
+            log.debug(
+                f"Skipping tags fetch for {self.artist.name} - {self.album.title} (tags already exist)"
+            )
             return
 
         artist_tags = _get_tags(self.artist, min_weight=50)
         album_tags = _get_tags(self.album, min_weight=10)
         track_tags = _get_tags(self.track, min_weight=5)
-        self.genre, self.lastfm_tags = process_lastfm_tags(
+        self.genres, self.lastfm_tags = process_lastfm_tags(
             artist_tags,
             album_tags,
             track_tags,
-            existing_genre=self.genre,
+            existing_genre=self.genres,
             existing_tags=self.lastfm_tags,
             artist_name=self.artist.name or self.tags.artist,
             track_title=self.track.title or self.tags.title,
@@ -168,19 +193,27 @@ class TaggedTrack:
 
     def update_cover(self) -> None:
         if cfg.tags.skip_existing_cover and self.tags.album_cover:
-            log.debug(f"Skipping cover fetch for {self.artist.name} - {self.album.title} (cover already exists)")
+            log.debug(
+                f"Skipping cover fetch for {self.artist.name} - {self.album.title} (cover already exists)"
+            )
             return
-        cover_data, mime_type = get_album_cover(self.artist.name or self.tags.artist, self.album.title or self.tags.album)
+        cover_data, mime_type = get_album_cover(
+            self.artist.name or self.tags.artist, self.album.title or self.tags.album
+        )
         if cover_data:
             self.tags.album_cover = cover_data
             self.tags.album_cover_mime = mime_type
 
     def update_lyrics(self) -> None:
         if cfg.tags.skip_existing_lyrics and self.tags.lyrics:
-            log.debug(f"Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)")
+            log.debug(
+                f"Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)"
+            )
             self.lyrics = self.tags.lyrics_text
             return
-        lyrics = get_lyrics(self.artist.name or self.tags.artist, self.track.title or self.tags.title)
+        lyrics = get_lyrics(
+            self.artist.name or self.tags.artist, self.track.title or self.tags.title
+        )
         if lyrics:
             self.lyrics = lyrics
 
@@ -195,7 +228,7 @@ class TaggedTrack:
             disc_number=self.disc_number or self.tags.disc_number,
             total_discs=self.total_discs or self.tags.total_discs,
             year=self.year or self.tags.year,
-            genre=self.genre,
+            genres=self.genres,
             lastfm_tags=self.lastfm_tags,
             rating=self.rating,
             album_cover=self.tags.album_cover,
@@ -227,7 +260,9 @@ def _get_album_tracks(album: pylast.Album) -> List[pylast.Track]:
         _album_tracks_cache[cache_key] = tracks
         return tracks
     except pylast.WSError:
-        log.warning(f"Last.FM: Failed to get album tracks - {album.artist.name} - {album.title}")
+        log.warning(
+            f"Last.FM: Failed to get album tracks - {album.artist.name} - {album.title}"
+        )
         return []
 
 
@@ -243,7 +278,9 @@ def _get_artist_albums(artist_name: str) -> List[pylast.TopItem]:
         return []
 
 
-def _get_tags(obj: pylast.Album | pylast.Artist | pylast.Track, min_weight: int = TAG_MIN_WEIGHT) -> List[pylast.TopItem]:
+def _get_tags(
+    obj: pylast.Album | pylast.Artist | pylast.Track, min_weight: int = TAG_MIN_WEIGHT
+) -> List[pylast.TopItem]:
     cache_key = None
     cache = None
     if isinstance(obj, pylast.Artist):
