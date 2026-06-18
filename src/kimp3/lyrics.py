@@ -35,7 +35,7 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
             timeout=10,
         )
         if response.status_code != 200:
-            log.warning(f'Genius API search failed for "{clean_artist} - {clean_title}": HTTP {response.status_code}')
+            log.warning(f'`network,tags`Genius API search failed for "{clean_artist} - {clean_title}": HTTP {response.status_code}')
             return None
 
         hits = response.json()["response"]["hits"]
@@ -69,7 +69,7 @@ def _get_lyrics_from_genius(artist: str, title: str) -> Optional[str]:
                 lyrics += elem + "\n"
         return lyrics.strip()
     except Exception as exc:
-        log.error(f'Error fetching lyrics from Genius for "{artist} - {title}": {exc}')
+        log.error(f'`network,tags`Error fetching lyrics from Genius for "{artist} - {title}": {exc}')
         return None
 
 
@@ -91,8 +91,8 @@ def get_lyrics(artist: str, title: str) -> Optional[str]:
         lyrics = _get_lyrics_from_genius(artist, title)
         if lyrics:
             return lyrics
-        log.info(f'No lyrics found for "{artist} - {title}"')
+        log.info(f'`network,tags`No lyrics found for "{artist} - {title}"')
         return None
     except Exception as exc:
-        log.error(f'Error fetching lyrics for "{artist} - {title}": {exc}')
+        log.error(f'`network,tags`Error fetching lyrics for "{artist} - {title}": {exc}')
         return None

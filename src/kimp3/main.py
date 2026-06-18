@@ -19,7 +19,7 @@ from kimp3.interface.utils import sep_with_header
 
 setup_logging(load_logging_config(cfg, APP_NAME))
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
-log.info("`startup` " + str(datetime.today()) + " Starting...")
+log.info("`startup`" + str(datetime.today()) + " Starting...")
 
 
 class ScanDir:
@@ -54,7 +54,7 @@ class ScanDir:
         Args:
             scanpath: Path to scan for audio files
         """
-        log.debug(f"Scanning {scanpath}…")
+        log.debug(f"`scan`Scanning {scanpath}…")
 
         try:
             # Get all items in directory at once
@@ -71,17 +71,17 @@ class ScanDir:
             # If audio files found, create SongDir
             if audio_files:
                 self.directories_list.append(SongDir(scanpath, self))
-                log.info(f'Added "{scanpath.replace(HOME_DIR, "~")}" to directory list ({len(audio_files)} audio files)')
-                log.debug("─" * 90)
+                log.info(f'`scan`Added "{scanpath.replace(HOME_DIR, "~")}" to directory list ({len(audio_files)} audio files)')
+                log.debug("`scan`" + "─" * 90)
 
             # Recursively scan subdirectories
             for dir_entry in dirs:
                 self.scan_directory(dir_entry.path)
 
         except PermissionError:
-            log.warning(f"Permission denied accessing {scanpath}")
+            log.warning(f"`scan,files`Permission denied accessing {scanpath}")
         except OSError as e:
-            log.error(f"Error scanning {scanpath}: {e}")
+            log.error(f"`scan,files`Error scanning {scanpath}: {e}")
 
     def check_tags(self):
         """Check tags in all found directories.
@@ -114,7 +114,7 @@ class ScanDir:
             plans = [audio_file.operation_plan for audio_file in d.audio_files if audio_file.operation_plan]
             if validation_errors:
                 for error in validation_errors:
-                    log.error(error)
+                    log.error(f"`files`{error}")
                 if cfg.scan.conflict_policy == "fail":
                     if plans:
                         PlanReporter().print_interesting_details(plans)
@@ -183,13 +183,13 @@ def main():
             if os.access(directory, os.R_OK):
                 dirs_to_scan.append(ScanDir(directory))
             else:
-                log.critical('Access to ' + str(directory) + ' denied.')
+                log.critical('`scan,files`Access to ' + str(directory) + ' denied.')
         else:
-            log.critical('Directory ' + str(directory) + ' doesn\'t exist.')
+            log.critical('`scan,files`Directory ' + str(directory) + ' doesn\'t exist.')
     
     for d in dirs_to_scan:
-        log.debug("Scanning stats:")
-        log.debug(f"{d.path}:\n" + pretty_repr(d.stats))
+        log.debug("`scan`Scanning stats:")
+        log.debug(f"`scan`{d.path}:\n" + pretty_repr(d.stats))
 
     if cfg.tags.fetch_tags:
         init_lastfm()
@@ -199,7 +199,7 @@ def main():
 
     OperationExecutor().cleanup_collection([directory.path for directory in dirs_to_scan])
 
-    log.debug(f"Cache stats: {pretty_repr(get_cache_stats())}")
+    log.debug(f"`state`Cache stats: {pretty_repr(get_cache_stats())}")
     clear_cache()
     return 0
 

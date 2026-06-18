@@ -38,14 +38,14 @@ def get_album_cover(artist: str, album: str, size: str = "mega") -> Tuple[Option
             _album_cover_cache[cache_key] = result
             return result
         except OSError as exc:
-            log.warning(f"Failed to read cached cover for {artist} - {album}: {exc}")
+            log.warning(f"`files,tags`Failed to read cached cover for {artist} - {album}: {exc}")
 
     try:
         album_obj = lastfm.network.get_album(artist, album)
         size_mapping = {"small": 0, "medium": 1, "large": 2, "extralarge": 3, "mega": 4}
         cover_url = album_obj.get_cover_image(size=size_mapping.get(size, 4))
         if not cover_url:
-            log.info(f"No cover found for {artist} - {album}")
+            log.info(f"`network,tags`No cover found for {artist} - {album}")
             return None, ""
 
         response = requests.get(cover_url, timeout=10)
@@ -61,7 +61,7 @@ def get_album_cover(artist: str, album: str, size: str = "mega") -> Tuple[Option
         cache_path.write_bytes(image_data)
         return result
     except Exception as exc:
-        log.error(f"Failed to get cover for {artist} - {album}: {exc}")
+        log.error(f"`network,tags`Failed to get cover for {artist} - {album}: {exc}")
         return None, ""
 
 
@@ -72,7 +72,7 @@ def clear_cover_cache() -> None:
             try:
                 file.unlink()
             except OSError as exc:
-                log.warning(f"Failed to delete cache file {file}: {exc}")
+                log.warning(f"`files,state`Failed to delete cache file {file}: {exc}")
 
 
 def cover_cache_size() -> int:

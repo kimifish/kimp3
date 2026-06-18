@@ -97,12 +97,12 @@ class OperationExecutor:
             return result
         if plan.errors:
             for error in plan.errors:
-                log.error(error)
+                log.error(f"`files`{error}")
             result.failures += 1
             result.errors.extend(plan.errors)
             return result
         if plan.skip_execution:
-            log.warning(plan.skip_reason)
+            log.warning(f"`files`{plan.skip_reason}")
             result.skips += 1
             return result
         if plan.operation == FileOperation.NONE:
@@ -143,7 +143,7 @@ class OperationExecutor:
                 result.failures += 1
                 result.errors.extend(verify_errors)
                 for error in verify_errors:
-                    log.error(error)
+                    log.error(f"`files`{error}")
                 return result
             if plan.operation == FileOperation.MOVE and source_parent:
                 self._remove_junk_files(source_parent, stop_at=source_parent)
@@ -153,7 +153,7 @@ class OperationExecutor:
             return result
         except Exception as error:
             message = f"Failed to execute plan for {audio_file.filepath}: {error}"
-            log.error(message)
+            log.error(f"`files`{message}")
             result.failures += 1
             result.errors.append(message)
             return result
@@ -259,7 +259,7 @@ class OperationExecutor:
                 plan.path.target_path
             )
         except Exception as error:
-            log.warning(f"Could not read existing target artwork for merge: {error}")
+            log.warning(f"`files,tags`Could not read existing target artwork for merge: {error}")
             return
         existing_cover = existing_tags.album_cover
         planned_cover = plan.tags.target_tags.album_cover
@@ -270,17 +270,17 @@ class OperationExecutor:
             plan.tags.target_tags.artwork = existing_tags.artwork
             changed = True
             log.info(
-                "Keeping larger existing artwork "
+                "`files,tags`Keeping larger existing artwork "
                 f"({len(existing_cover)} bytes > {len(planned_cover) if planned_cover else 0} bytes)"
             )
         if existing_tags.lyrics:
             plan.tags.target_tags.lyrics = existing_tags.lyrics
             changed = True
-            log.info("Keeping existing library lyrics")
+            log.info("`files,tags`Keeping existing library lyrics")
         if existing_tags.rating is not None:
             plan.tags.target_tags.rating = existing_tags.rating
             changed = True
-            log.info("Keeping existing library rating")
+            log.info("`files,tags`Keeping existing library rating")
         if changed:
             plan.tags = build_tag_change_plan(
                 plan.tags.source_tags, plan.tags.target_tags
@@ -299,7 +299,7 @@ class OperationExecutor:
                     link_path.unlink()
                 else:
                     log.warning(
-                        f"Replacing non-symlink path in genre directory: {link_path}"
+                        f"`files`Replacing non-symlink path in genre directory: {link_path}"
                     )
                     if link_path.is_dir():
                         shutil.rmtree(link_path)
@@ -326,7 +326,7 @@ class OperationExecutor:
                 else (link_path.parent / raw_target).resolve()
             )
             if actual_target == target and link_path.absolute() not in planned:
-                log.info(f"Removing stale genre symlink: {link_path}")
+                log.info(f"`files`Removing stale genre symlink: {link_path}")
                 link_path.unlink()
 
     def _genre_base_dir(self) -> Path | None:
@@ -351,7 +351,7 @@ class OperationExecutor:
                 else (link_path.parent / raw_target).resolve()
             )
             if not actual_target.exists():
-                log.info(f"Removing broken genre symlink: {link_path}")
+                log.info(f"`files`Removing broken genre symlink: {link_path}")
                 if not self.dry_run:
                     link_path.unlink()
         self._remove_junk_files(genre_dir, stop_at=genre_dir)
@@ -369,7 +369,7 @@ class OperationExecutor:
             return
         for path in root.rglob("*"):
             if path.is_file() and not path.is_symlink() and path.name in junk_names:
-                log.info(f"Removing junk file: {path}")
+                log.info(f"`files`Removing junk file: {path}")
                 if not self.dry_run:
                     path.unlink()
 
@@ -385,10 +385,10 @@ class OperationExecutor:
                 if not current.exists() or any(current.iterdir()):
                     break
                 if self.dry_run:
-                    log.info(f"Dry run - would delete empty {current}")
+                    log.info(f"`files`Dry run - would delete empty {current}")
                     break
                 current.rmdir()
-                log.info(f"Deleting empty {current}")
+                log.info(f"`files`Deleting empty {current}")
             except OSError:
                 break
             current = current.parent
@@ -398,7 +398,7 @@ class OperationExecutor:
     ) -> FileOperation:
         if source_path.suffix.lower() not in IMAGE_EXTENSIONS:
             log.warning(
-                f"Skipping common file because target already exists: {target_path}"
+                f"`files`Skipping common file because target already exists: {target_path}"
             )
             return FileOperation.NONE
 
@@ -406,13 +406,13 @@ class OperationExecutor:
         target_size = target_path.stat().st_size
         if source_size <= target_size:
             log.warning(
-                "Keeping existing common image because it is not smaller: "
+                "`files`Keeping existing common image because it is not smaller: "
                 f"{target_path} ({target_size} bytes >= {source_size} bytes)"
             )
             return FileOperation.NONE
 
         log.warning(
-            "Replacing existing common image with larger source: "
+            "`files`Replacing existing common image with larger source: "
             f"{target_path} ({source_size} bytes > {target_size} bytes)"
         )
         if operation == FileOperation.COPY:
@@ -421,7 +421,7 @@ class OperationExecutor:
             target_path.unlink()
             moved_path = shutil.move(source_path, target_path)
             if Path(moved_path) != target_path:
-                log.warning(f"Moved common image to unexpected path: {moved_path}")
+                log.warning(f"`files`Moved common image to unexpected path: {moved_path}")
         return operation
 
     def _execute_common_files(
@@ -461,5 +461,5 @@ class OperationExecutor:
                 message = (
                     f"Failed to process common file {common_file.filepath}: {error}"
                 )
-                log.error(message)
+                log.error(f"`files`{message}")
                 result.errors.append(message)

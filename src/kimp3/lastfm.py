@@ -87,7 +87,7 @@ class TaggedTrack:
 
     def _correct_artist_name(self, artist: pylast.Artist) -> Optional[str]:
         if not artist or not artist.name:
-            log.warning(f"Artist doesn't exist - {artist}")
+            log.warning(f"`network,tags`Artist doesn't exist - {artist}")
             return None
         if artist.name in _artist_corrections:
             return _artist_corrections[artist.name]
@@ -96,13 +96,13 @@ class TaggedTrack:
             _artist_corrections[artist.name] = corrected
             artist.name = corrected
         except pylast.WSError:
-            log.warning(f"Last.FM: Artist not found - {artist.name}")
+            log.warning(f"`network,tags`Last.FM: Artist not found - {artist.name}")
             _artist_corrections[artist.name] = artist.name
         return artist.name
 
     def _correct_album_name(self, album: pylast.Album) -> Optional[str]:
         if not album or not album.title or not album.artist or not album.artist.name:
-            log.warning(f"Album doesn't have enough data - {album}")
+            log.warning(f"`network,tags`Album doesn't have enough data - {album}")
             return None
 
         cache_key = (album.artist.name, album.title)
@@ -128,20 +128,20 @@ class TaggedTrack:
                 try:
                     lastfm_track_count = len(list(best_album.get_tracks()))
                     if lastfm_track_count != self.songdir.track_count:
-                        log.warning(f"Track count mismatch for '{best_album.title}':")
+                        log.warning(f"`network,tags`Track count mismatch for '{best_album.title}':")
                         log.warning(
-                            f"Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}"
+                            f"`network,tags`Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}"
                         )
                 except pylast.WSError:
                     log.warning(
-                        f"Failed to get track count for album '{best_album.title}'"
+                        f"`network,tags`Failed to get track count for album '{best_album.title}'"
                     )
 
             _album_corrections[cache_key] = corrected
             album.title = corrected
         except pylast.WSError:
             log.warning(
-                f"Last.FM: Album not found - {self.tags.artist} - {self.tags.album}"
+                f"`network,tags`Last.FM: Album not found - {self.tags.artist} - {self.tags.album}"
             )
             _album_corrections[cache_key] = album.title
         return album.title
@@ -153,7 +153,7 @@ class TaggedTrack:
                 title = self.tags.title
         except pylast.WSError:
             log.warning(
-                f"Last.FM: Track not found - {self.artist.name} - {self.tags.title}"
+                f"`network,tags`Last.FM: Track not found - {self.artist.name} - {self.tags.title}"
             )
             title = self.tags.title
         return title
@@ -174,7 +174,7 @@ class TaggedTrack:
     def update_tags(self) -> None:
         if cfg.tags.skip_existing_tags and self.tags.genre and self.tags.lastfm_tags:
             log.debug(
-                f"Skipping tags fetch for {self.artist.name} - {self.album.title} (tags already exist)"
+                f"`tags`Skipping tags fetch for {self.artist.name} - {self.album.title} (tags already exist)"
             )
             return
 
@@ -194,7 +194,7 @@ class TaggedTrack:
     def update_cover(self) -> None:
         if cfg.tags.skip_existing_cover and self.tags.album_cover:
             log.debug(
-                f"Skipping cover fetch for {self.artist.name} - {self.album.title} (cover already exists)"
+                f"`tags`Skipping cover fetch for {self.artist.name} - {self.album.title} (cover already exists)"
             )
             return
         cover_data, mime_type = get_album_cover(
@@ -207,7 +207,7 @@ class TaggedTrack:
     def update_lyrics(self) -> None:
         if cfg.tags.skip_existing_lyrics and self.tags.lyrics:
             log.debug(
-                f"Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)"
+                f"`tags`Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)"
             )
             self.lyrics = self.tags.lyrics_text
             return
@@ -245,12 +245,12 @@ def init_lastfm() -> None:
         username=cfg.tags.lastfm_username,
         password_hash=cfg.tags.lastfm_password_hash,
     )
-    log.info("Last.FM login")
+    log.info("`network,tags`Last.FM login")
 
 
 def _get_album_tracks(album: pylast.Album) -> List[pylast.Track]:
     if not album or not album.title or not album.artist or not album.artist.name:
-        log.warning(f"Album doesn't have enough data - {album}")
+        log.warning(f"`network,tags`Album doesn't have enough data - {album}")
         return []
     cache_key = (album.artist.name, album.title)
     if cache_key in _album_tracks_cache:
@@ -261,7 +261,7 @@ def _get_album_tracks(album: pylast.Album) -> List[pylast.Track]:
         return tracks
     except pylast.WSError:
         log.warning(
-            f"Last.FM: Failed to get album tracks - {album.artist.name} - {album.title}"
+            f"`network,tags`Last.FM: Failed to get album tracks - {album.artist.name} - {album.title}"
         )
         return []
 
@@ -274,7 +274,7 @@ def _get_artist_albums(artist_name: str) -> List[pylast.TopItem]:
         _artist_albums_cache[artist_name] = top_albums
         return top_albums
     except pylast.WSError:
-        log.warning(f"Last.FM: Failed to get artist albums - {artist_name}")
+        log.warning(f"`network,tags`Last.FM: Failed to get artist albums - {artist_name}")
         return []
 
 
@@ -296,7 +296,7 @@ def _get_tags(
     try:
         lastfm_raw_tags = obj.get_top_tags()
     except pylast.WSError:
-        log.warning("Last.FM: Failed to get tags")
+        log.warning("`network,tags`Last.FM: Failed to get tags")
         return []
 
     lastfm_tags = []
@@ -325,7 +325,7 @@ def get_genre(tags: AudioTags) -> str:
         _genre_cache[cache_key] = genre
         return genre
     except pylast.WSError:
-        log.warning(f"Last.FM: Failed to get genre for {tags.artist} - {tags.album}")
+        log.warning(f"`network,tags`Last.FM: Failed to get genre for {tags.artist} - {tags.album}")
         _genre_cache[cache_key] = ""
         return ""
 
@@ -339,7 +339,7 @@ def clear_cache() -> None:
     _artist_tags_cache.clear()
     _album_tags_cache.clear()
     clear_cover_cache()
-    log.debug("All Last.FM caches cleared")
+    log.debug("`state`All Last.FM caches cleared")
 
 
 def get_cache_stats() -> Dict[str, int]:

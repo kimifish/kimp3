@@ -31,7 +31,7 @@ def test_is_album(album):
     else:
         album_title = album_title_set.pop()
 
-    log.debug("Directory is album: " + str(is_album) + ", Album title: " + album_title)
+    log.debug("`scan,tags`Directory is album: " + str(is_album) + ", Album title: " + album_title)
     return is_album, album_title
 
 
@@ -70,7 +70,7 @@ def test_is_compilation(album) -> tuple[bool, str]:
     is_compilation = (track_count / total_tracks) <= float(cfg.collection.compilation_coef)
     album_artist = "Various Artists" if is_compilation else artist_name
     
-    log.debug(f"Album compilation check: {is_compilation=}, {album_artist=}, "
+    log.debug(f"`scan,tags`Album compilation check: {is_compilation=}, {album_artist=}, "
               f"max_artist_tracks={track_count}/{total_tracks}")
     
     return is_compilation, album_artist

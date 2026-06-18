@@ -39,7 +39,7 @@ class SongDir(AbstractSongDir):
             self._count_tracks()
 
         if cfg.logging.level == 'DEBUG':
-            log.debug(pretty_repr(self.stats))
+            log.debug(f"`scan`{pretty_repr(self.stats)}")
 
     def _scan_directory(self) -> None:
         """Scan directory for audio files and common album files."""
@@ -49,16 +49,16 @@ class SongDir(AbstractSongDir):
                     continue
                     
                 if entry.suffix.lower() in cfg.scan.valid_extensions:
-                    log.debug(f"+ {str(entry).replace(str(self.path), '…')}")
+                    log.debug(f"`scan`+ {str(entry).replace(str(self.path), '…')}")
                     audio_file = AudioFile(filepath=entry, song_dir=self)
                     if audio_file:
                         self.audio_files.append(audio_file)
                 elif entry.name.lower() in [f.lower() for f in cfg.scan.common_files]:
-                    log.debug(f"+ {str(entry).replace(str(self.path), '…')}")
+                    log.debug(f"`scan`+ {str(entry).replace(str(self.path), '…')}")
                     self.common_files.append(UsualFile(filepath=entry, song_dir=self))
 
         except OSError as e:
-            log.error(f"Error scanning directory {self.path}: {e}")
+            log.error(f"`scan,files`Error scanning directory {self.path}: {e}")
 
     def _analyze_directory(self) -> None:
         """Analyze directory contents to determine if it's an album/compilation."""
@@ -84,7 +84,7 @@ class SongDir(AbstractSongDir):
                 max_track_num = max(max_track_num, audio_file.tags.track_number)
                 
         self.track_count = max(max_track_num, len(self.audio_files))
-        log.debug(f"Track count set to {self.track_count}")
+        log.debug(f"`scan,tags`Track count set to {self.track_count}")
 
     def _process_audio_files(self, operation: FileOperation) -> None:
         """Process audio files according to specified operation.
@@ -120,7 +120,7 @@ class SongDir(AbstractSongDir):
                     f"Duplicate track number {track_number}; clearing track number for weaker candidate "
                     f"{audio_file.filepath}"
                 )
-                log.warning(warning)
+                log.warning(f"`tags`{warning}")
                 audio_file.tags.track_number = None
                 audio_file.calculate_new_paths_from_tags()
                 if audio_file.operation_plan:
@@ -144,7 +144,7 @@ class SongDir(AbstractSongDir):
                 break
                 
         if not target_dir:
-            log.warning("Could not determine target directory for common files")
+            log.warning("`files`Could not determine target directory for common files")
             return
         
         for common_file in self.common_files:
@@ -182,7 +182,7 @@ class SongDir(AbstractSongDir):
 
     def fetch_tags(self):
         """Check and correct tags for all songs in directory."""
-        log.info("Fetching tags...")
+        log.info("`network,tags`Fetching tags...")
         changes = {}
         for audio_file in self.audio_files:
             changes[str(audio_file.filepath).replace(str(self.path.parent), '')] = audio_file.fetch_tags()
@@ -227,7 +227,7 @@ class SongDir(AbstractSongDir):
                 continue
             if cfg.dry_run:
                 audio_file.tag_write_success = True
-                log.info(f"Dry run - would write tags to {audio_file.filepath}")
+                log.info(f"`files,tags`Dry run - would write tags to {audio_file.filepath}")
                 skips += 1
                 continue
             if interactive:
@@ -250,11 +250,11 @@ class SongDir(AbstractSongDir):
                 failures += 1
         
         if successes > 0:
-            log.info(f"[green]Successfully wrote tags to {successes} files[/green]")
+            log.info(f"`files,tags`[green]Successfully wrote tags to {successes} files[/green]")
         if failures > 0:
-            log.error(f"[red]Failed to write tags to {failures} files[/red]")
+            log.error(f"`files,tags`[red]Failed to write tags to {failures} files[/red]")
         if skips > 0:
-            log.info(f"[yellow]Skipped writing tags to {skips} files[/yellow]")
+            log.info(f"`files,tags`[yellow]Skipped writing tags to {skips} files[/yellow]")
             
         return (successes, failures, skips)
     

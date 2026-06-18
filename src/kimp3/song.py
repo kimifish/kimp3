@@ -37,14 +37,14 @@ class AudioFile(UsualFile):
         try:
             tags = get_backend(self.filepath).read(self.filepath)
             if tags.lyrics:
-                log.debug(f"Found lyrics: {tags.lyrics.text[:100]}...")
+                log.debug(f"`tags`Found lyrics: {tags.lyrics.text[:100]}...")
             else:
-                log.debug("No lyrics found in file")
+                log.debug("`tags`No lyrics found in file")
             return tags
 
         except Exception as e:
-            log.error(f"Error reading tags from {self.filepath}: {e}")
-            log.exception("Full traceback:")
+            log.error(f"`files,tags`Error reading tags from {self.filepath}: {e}")
+            log.exception("`files,tags`Full traceback:")
             return AudioTags()
     
     def process_missing_tags_from_local_data(self) -> None:
@@ -101,7 +101,7 @@ class AudioFile(UsualFile):
                     changes[field] = (old_value or '<empty>', new_value or '<empty>')
 
         except Exception as e:
-            log.error(f"Error fetching tags for {self.filepath}: {e}")
+            log.error(f"`network,tags`Error fetching tags for {self.filepath}: {e}")
         
         return changes
 
@@ -109,11 +109,11 @@ class AudioFile(UsualFile):
         """Writes tags to file."""
         try:
             get_backend(self.filepath).write(self.filepath, self.tags, TagWritePolicy())
-            log.debug(f"Tags successfully written to {self.filepath}")
+            log.debug(f"`files,tags`Tags successfully written to {self.filepath}")
             return self.verify_tags()
 
         except Exception as e:
-            log.error(f"Error writing tags to {self.filepath}: {e}")
+            log.error(f"`files,tags`Error writing tags to {self.filepath}: {e}")
             return False
 
     def tags_changed(self) -> bool:
@@ -128,7 +128,7 @@ class AudioFile(UsualFile):
         if not errors:
             return True
         for error in errors:
-            log.error(error)
+            log.error(f"`files,tags`{error}")
         return False
 
     def calculate_new_paths_from_tags(self) -> None:
@@ -144,7 +144,7 @@ class AudioFile(UsualFile):
             self.skip_tag_write = not plan.requires_tag_write
 
         except Exception as e:
-            log.error(f"Error calculating new path for {self.filepath}: {e}")
+            log.error(f"`files`Error calculating new path for {self.filepath}: {e}")
 
     def print_changes(self, 
                       show_tags: bool = False,

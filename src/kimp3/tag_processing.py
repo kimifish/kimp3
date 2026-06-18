@@ -247,7 +247,7 @@ def process_lastfm_tags(
         candidates.extend(TagCandidate(tag, "llm_tag") for tag in llm_tags.tags)
 
     log.debug(
-        "Last.fm tags received for %s - %s: track=%s album=%s artist=%s",
+        "`network,tags`Last.fm tags received for %s - %s: track=%s album=%s artist=%s",
         artist_name,
         track_title,
         _format_lastfm_tags_for_log(track_tags),
@@ -346,7 +346,7 @@ def get_llm_tag_suggestions(artist: str, title: str) -> LlmTagSuggestions:
             },
         }
 
-        log.debug(f"Requesting LLM tags for: {message}")
+        log.debug(f"`network,tags`Requesting LLM tags for: {message}")
         response = requests.post(
             _llm_chat_url(cfg.tags.llm_url),
             headers=headers,
@@ -363,7 +363,7 @@ def get_llm_tag_suggestions(artist: str, title: str) -> LlmTagSuggestions:
             except (json.JSONDecodeError, AttributeError):
                 pass
             log.warning(
-                f"LLM service returned HTTP {response.status_code}: {error_code} {error_message}".strip()
+                f"`network,tags`LLM service returned HTTP {response.status_code}: {error_code} {error_message}".strip()
             )
             return LlmTagSuggestions([], [])
 
@@ -372,23 +372,23 @@ def get_llm_tag_suggestions(artist: str, title: str) -> LlmTagSuggestions:
             return LlmTagSuggestions([], [])
         answer = response_data.get("answer")
         if not answer:
-            log.warning("LLM service returned empty tags")
+            log.warning("`network,tags`LLM service returned empty tags")
             return LlmTagSuggestions([], [])
 
         suggestions = _parse_llm_tags_answer(answer)
         if not suggestions.genres and not suggestions.tags:
-            log.warning("LLM service returned no parseable tags")
+            log.warning("`network,tags`LLM service returned no parseable tags")
             return LlmTagSuggestions([], [])
-        log.debug(f"LLM tags received: {suggestions}")
+        log.debug(f"`network,tags`LLM tags received: {suggestions}")
         return suggestions
     except requests.exceptions.RequestException as exc:
-        log.error(f"Failed to connect to LLM service: {exc}")
+        log.error(f"`network,tags`Failed to connect to LLM service: {exc}")
         return LlmTagSuggestions([], [])
     except json.JSONDecodeError as exc:
-        log.error(f"Failed to parse LLM response: {exc}")
+        log.error(f"`network,tags`Failed to parse LLM response: {exc}")
         return LlmTagSuggestions([], [])
     except Exception as exc:
-        log.error(f"Unexpected error getting LLM tags: {exc}")
+        log.error(f"`network,tags`Unexpected error getting LLM tags: {exc}")
         return LlmTagSuggestions([], [])
 
 
