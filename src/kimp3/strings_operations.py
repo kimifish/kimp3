@@ -3,10 +3,16 @@
 # pyright: reportAttributeAccessIssue=false
 
 import logging
+import re
 from difflib import SequenceMatcher
+
 from kimp3.config import cfg, APP_NAME
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
+
+ALBUM_TITLE_MATCH_THRESHOLD = 0.78
+ALBUM_TITLE_BASE_WEIGHT = 0.85
+_TRAILING_PARENS_RE = re.compile(r"\s*\(([^()]*)\)\s*$")
 
 
 def sanitize_path_component(value: str) -> str:
@@ -60,3 +66,49 @@ def string_similarity(str1: str, str2: str, min_ratio: float = 0.5) -> float:
     """
     result = SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
     return result if result > min_ratio else 0
+
+
+def split_album_title(title: str) -> tuple[str, str]:
+    """Split an album title into primary title and trailing parenthetical qualifier."""
+    base = title.strip()
+    qualifiers: list[str] = []
+
+    while True:
+        match = _TRAILING_PARENS_RE.search(base)
+        if not match:
+            break
+        qualifiers.insert(0, match.group(1).strip())
+        base = base[: match.start()].strip()
+
+    return base or title.strip(), " ".join(item for item in qualifiers if item)
+
+
+def _casefolded_ratio(str1: str, str2: str) -> float:
+    if not str1 and not str2:
+        return 1.0
+    if not str1 or not str2:
+        return 0.0
+    return SequenceMatcher(None, str1.casefold(), str2.casefold()).ratio()
+
+
+def album_title_similarity(
+    candidate: str,
+    query: str,
+    min_ratio: float = ALBUM_TITLE_MATCH_THRESHOLD,
+) -> float:
+    """Compare album titles while treating parenthetical qualifiers as weak evidence."""
+    candidate_base, candidate_qualifier = split_album_title(candidate)
+    query_base, query_qualifier = split_album_title(query)
+
+    base_ratio = _casefolded_ratio(candidate_base, query_base)
+    if candidate_qualifier and query_qualifier:
+        qualifier_ratio = _casefolded_ratio(candidate_qualifier, query_qualifier)
+    elif candidate_qualifier == query_qualifier:
+        qualifier_ratio = 1.0
+    else:
+        qualifier_ratio = 0.0
+
+    score = base_ratio * ALBUM_TITLE_BASE_WEIGHT + qualifier_ratio * (
+        1.0 - ALBUM_TITLE_BASE_WEIGHT
+    )
+    return score if score >= min_ratio else 0.0

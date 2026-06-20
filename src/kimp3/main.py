@@ -69,6 +69,7 @@ def _log_startup_config() -> None:
                     "fetch_workers": cfg.tags.fetch_workers,
                     "fetch_album_cover": cfg.tags.fetch_album_cover,
                     "fetch_lyrics": cfg.tags.fetch_lyrics,
+                    "album_metadata_source": cfg.tags.album_metadata_source,
                     "skip_existing_tags": cfg.tags.skip_existing_tags,
                     "skip_existing_cover": cfg.tags.skip_existing_cover,
                     "skip_existing_lyrics": cfg.tags.skip_existing_lyrics,

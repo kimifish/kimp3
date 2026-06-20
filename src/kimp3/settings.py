@@ -118,6 +118,10 @@ class TagsSettings(BaseModel):
     skip_existing_tags: bool = True
     skip_existing_cover: bool = True
     skip_existing_lyrics: bool = True
+    album_metadata_source: Literal[
+        "musicbrainz_first", "lastfm_first", "musicbrainz_only", "lastfm_only"
+    ] = "musicbrainz_first"
+    musicbrainz_contact: str = "https://github.com/kimifish/kimp3"
     lastfm_api_key: str | None = None
     lastfm_api_secret: str | None = None
     genius_token: str | None = None

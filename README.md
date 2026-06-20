@@ -255,7 +255,9 @@ KiMP3 writes only managed fields and preserves unknown frames/comments by defaul
 
 ## Tag Processing
 
-Tag enrichment combines deterministic rules, Last.FM evidence and optional LLM suggestions.
+Tag enrichment combines deterministic rules, MusicBrainz/Last.FM metadata, Last.FM tag evidence and optional LLM suggestions.
+
+MusicBrainz is the default album discography source for album title correction. It does not require an API key for non-commercial use, but KiMP3 sends a configured `musicbrainz_contact` User-Agent contact and throttles requests to respect the public API limit. `album_metadata_source` controls fallback order and accepts `musicbrainz_first`, `lastfm_first`, `musicbrainz_only` or `lastfm_only`.
 
 Last.FM provides weighted flat tag lists from track, album and artist levels. KiMP3 keeps the source and weight of each candidate, with track tags ranked above album tags and album tags ranked above artist tags.
 
@@ -352,6 +354,7 @@ scan:
 
 Metadata enrichment can use:
 
+- [MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_API) for album discographies. No API key is required.
 - [Last.FM](https://www.last.fm/api/account)
 - [Genius](https://genius.com/api-clients)
 

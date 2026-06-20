@@ -4,6 +4,7 @@ import pylast
 
 from kimp3 import lastfm
 from kimp3.models import LyricsLookup
+from kimp3.musicbrainz import AlbumCandidate
 
 
 def test_init_lastfm_falls_back_to_unauthenticated_network(monkeypatch):
@@ -54,7 +55,9 @@ def test_get_artist_albums_handles_pylast_base_errors(monkeypatch):
 def test_lyrics_lookup_marker_skips_recent_retry(monkeypatch):
     monkeypatch.setattr(lastfm.cfg.tags, "lyrics_not_found_retry_days", 90)
     monkeypatch.setattr(lastfm.cfg.tags, "lyrics_not_found_retry_jitter_days", 0)
-    lookup = LyricsLookup(checked_at=date.today() - timedelta(days=30), artist="Artist", title="Song")
+    lookup = LyricsLookup(
+        checked_at=date.today() - timedelta(days=30), artist="Artist", title="Song"
+    )
 
     assert lastfm._lyrics_lookup_is_fresh(lookup, "Artist", "Song") is True
 
@@ -62,6 +65,75 @@ def test_lyrics_lookup_marker_skips_recent_retry(monkeypatch):
 def test_lyrics_lookup_marker_expires_after_retry_window(monkeypatch):
     monkeypatch.setattr(lastfm.cfg.tags, "lyrics_not_found_retry_days", 90)
     monkeypatch.setattr(lastfm.cfg.tags, "lyrics_not_found_retry_jitter_days", 0)
-    lookup = LyricsLookup(checked_at=date.today() - timedelta(days=91), artist="Artist", title="Song")
+    lookup = LyricsLookup(
+        checked_at=date.today() - timedelta(days=91), artist="Artist", title="Song"
+    )
 
     assert lastfm._lyrics_lookup_is_fresh(lookup, "Artist", "Song") is False
+
+
+def test_best_musicbrainz_album_match_weights_base_title(monkeypatch):
+    calls = []
+
+    def fake_get_artist_albums(artist, album_title=None):
+        calls.append((artist, album_title))
+        return [
+            AlbumCandidate("Guero (Deluxe Edition)"),
+            AlbumCandidate("The Information (Deluxe Version)"),
+        ]
+
+    monkeypatch.setattr(
+        lastfm.musicbrainz,
+        "get_artist_albums",
+        fake_get_artist_albums,
+    )
+
+    match = lastfm._best_musicbrainz_album_match(
+        "Beck", "The Information (Deluxe Edition)"
+    )
+
+    assert match is not None
+    assert match[0] == "The Information (Deluxe Version)"
+    assert calls == [("Beck", "The Information (Deluxe Edition)")]
+
+
+def test_best_musicbrainz_album_match_keeps_specific_release_title(monkeypatch):
+    monkeypatch.setattr(
+        lastfm.musicbrainz,
+        "get_artist_albums",
+        lambda artist, album_title=None: [
+            AlbumCandidate("The Information (Deluxe Version)"),
+            AlbumCandidate("The Information"),
+        ],
+    )
+
+    match = lastfm._best_musicbrainz_album_match(
+        "Beck", "The Information (Deluxe Version)"
+    )
+
+    assert match is not None
+    assert match[0] == "The Information (Deluxe Version)"
+
+
+def test_best_lastfm_album_match_weights_base_title(monkeypatch):
+    class FakeAlbum:
+        def __init__(self, title):
+            self.title = title
+
+    class FakeTopItem:
+        def __init__(self, title):
+            self.item = FakeAlbum(title)
+
+    monkeypatch.setattr(
+        lastfm,
+        "_get_artist_albums",
+        lambda artist: [
+            FakeTopItem("Guero (Deluxe Edition)"),
+            FakeTopItem("The Information (Deluxe Version)"),
+        ],
+    )
+
+    match = lastfm._best_lastfm_album_match("Beck", "The Information (Deluxe Edition)")
+
+    assert match is not None
+    assert match[0] == "The Information (Deluxe Version)"

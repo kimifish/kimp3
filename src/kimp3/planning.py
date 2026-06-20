@@ -318,6 +318,20 @@ def build_tag_change_plan(source_tags: AudioTags, target_tags: AudioTags) -> Tag
     return TagChangePlan(source_tags=source_tags, target_tags=target_tags, changes=changes)
 
 
+def _needs_genre_separator_rewrite(source_path: Path) -> bool:
+    try:
+        audio = MutagenFile(source_path, easy=True)
+    except Exception:
+        return False
+    if audio is None:
+        return False
+    try:
+        genres = audio.get("genre", [])
+    except AttributeError:
+        return False
+    return any("/" in str(genre) for genre in genres)
+
+
 def build_operation_plan(
     source_path: Path,
     source_tags: AudioTags,
@@ -328,6 +342,16 @@ def build_operation_plan(
     """Build a complete path+tag operation plan for one audio file."""
     path_plan = build_path_plan(source_path, target_tags, song_dir, settings)
     tag_plan = build_tag_change_plan(source_tags, target_tags)
+    if _needs_genre_separator_rewrite(source_path) and not any(
+        change.field == "genres" for change in tag_plan.changes
+    ):
+        tag_plan.changes.append(
+            TagFieldChange(
+                field="genres",
+                old_value=source_tags.genres,
+                new_value=target_tags.genres,
+            )
+        )
     return OperationPlan(path=path_plan, tags=tag_plan, warnings=[*path_plan.warnings])
 
 

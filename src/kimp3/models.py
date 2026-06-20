@@ -117,7 +117,10 @@ def _split_tag_list(value: object) -> list[str]:
     if isinstance(value, str):
         return [item.strip() for item in value.replace("/", ",").split(",") if item.strip()]
     if isinstance(value, list):
-        return [str(item).strip() for item in value if str(item).strip()]
+        result: list[str] = []
+        for item in value:
+            result.extend(_split_tag_list(item))
+        return result
     return [str(value).strip()] if str(value).strip() else []
 
 

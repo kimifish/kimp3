@@ -87,6 +87,21 @@ class TestAudioTags:
         assert isinstance(tags.lyrics, Lyrics)
         assert tags.lyrics.text == "words"
 
+    def test_audio_tags_splits_slash_separated_genre_lists(self):
+        tags = AudioTags(
+            genres=["hip hop/indie/alternative rock/breakbeat/psychedelic/rock"]
+        )
+
+        assert tags.genres == [
+            "hip hop",
+            "indie",
+            "alternative rock",
+            "breakbeat",
+            "psychedelic",
+            "rock",
+        ]
+        assert tags.genre == "hip hop, indie, alternative rock, breakbeat, psychedelic, rock"
+
     def test_audio_tags_parses_lyrics_lookup_json(self):
         tags = AudioTags(
             lyrics_lookup='{"status":"not_found","checked_at":"2026-06-18","artist":"A","title":"T"}'

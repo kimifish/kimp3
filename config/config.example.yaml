@@ -52,6 +52,8 @@ tags:
   skip_existing_tags: true
   skip_existing_cover: true
   skip_existing_lyrics: true
+  album_metadata_source: musicbrainz_first
+  musicbrainz_contact: https://github.com/kimifish/kimp3
   lastfm_api_key: .env
   lastfm_api_secret: .env
   genius_token: .env

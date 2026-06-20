@@ -228,6 +228,25 @@ def test_operation_plan_combines_path_and_tag_changes(tmp_path):
     assert plan.is_noop is False
 
 
+def test_operation_plan_rewrites_raw_slash_separated_genre(monkeypatch, tmp_path):
+    source = tmp_path / "song.mp3"
+    source.write_bytes(b"audio")
+
+    class FakeAudio(dict):
+        def get(self, key, default=None):
+            if key == "genre":
+                return ["hip hop/indie/rock"]
+            return default
+
+    monkeypatch.setattr("kimp3.planning.MutagenFile", lambda *args, **kwargs: FakeAudio())
+
+    tags = AudioTags(title="Song", artist="Artist", album="Album", genres=["hip hop", "indie", "rock"])
+    plan = build_operation_plan(source, tags, tags, DummySongDir(), Settings())
+
+    assert plan.requires_tag_write is True
+    assert [change.field for change in plan.tags.changes] == ["genres"]
+
+
 def test_path_plan_normalizes_paths_to_absolute(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 

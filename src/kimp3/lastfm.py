@@ -8,11 +8,12 @@ from typing import Dict, List, Optional, Tuple
 import pylast
 from rich.pretty import pretty_repr
 
+from kimp3 import musicbrainz
 from kimp3.config import APP_NAME, cfg
 from kimp3.covers import clear_cover_cache, cover_cache_size, get_album_cover
 from kimp3.lyrics import get_lyrics
 from kimp3.models import AbstractSongDir, AudioTags, LyricsLookup
-from kimp3.strings_operations import string_similarity
+from kimp3.strings_operations import album_title_similarity
 from kimp3.tag_processing import NUMBER_OF_TAGS, TAG_MIN_WEIGHT, process_lastfm_tags
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
@@ -37,7 +38,9 @@ def _lyrics_retry_days(artist: str, title: str) -> int:
     return max(1, cfg.tags.lyrics_not_found_retry_days + jitter)
 
 
-def _lyrics_lookup_is_fresh(lookup: LyricsLookup | None, artist: str, title: str) -> bool:
+def _lyrics_lookup_is_fresh(
+    lookup: LyricsLookup | None, artist: str, title: str
+) -> bool:
     if not lookup or lookup.status != "not_found":
         return False
     if lookup.artist and lookup.artist != artist:
@@ -132,32 +135,11 @@ class TaggedTrack:
             return _album_corrections[cache_key]
 
         try:
-            top_albums = _get_artist_albums(album.artist.name)
-            corrected = self.tags.album
-            best_ratio = 0.0
-            best_album = None
-
-            for iter_album in top_albums:
-                current_ratio = string_similarity(
-                    iter_album.item.title, self.tags.album
-                )
-                if current_ratio > best_ratio:
-                    best_ratio = current_ratio
-                    corrected = iter_album.item.title
-                    best_album = iter_album.item
-
+            corrected, best_album, source = self._find_album_correction(
+                album.artist.name
+            )
             if best_album and self.songdir.track_count:
-                try:
-                    lastfm_track_count = len(list(best_album.get_tracks()))
-                    if lastfm_track_count != self.songdir.track_count:
-                        log.warning(f"`network,tags`Track count mismatch for '{best_album.title}':")
-                        log.warning(
-                            f"`network,tags`Local: {self.songdir.track_count}, Last.FM: {lastfm_track_count}"
-                        )
-                except LASTFM_ERRORS:
-                    log.warning(
-                        f"`network,tags`Failed to get track count for album '{best_album.title}'"
-                    )
+                self._warn_track_count_mismatch(best_album, source)
 
             _album_corrections[cache_key] = corrected
             album.title = corrected
@@ -167,6 +149,47 @@ class TaggedTrack:
             )
             _album_corrections[cache_key] = album.title
         return album.title
+
+    def _find_album_correction(
+        self, artist_name: str
+    ) -> tuple[str, object | None, str]:
+        source_order = {
+            "musicbrainz_first": ["musicbrainz", "lastfm"],
+            "lastfm_first": ["lastfm", "musicbrainz"],
+            "musicbrainz_only": ["musicbrainz"],
+            "lastfm_only": ["lastfm"],
+        }[cfg.tags.album_metadata_source]
+
+        for source in source_order:
+            if source == "musicbrainz":
+                match = _best_musicbrainz_album_match(artist_name, self.tags.album)
+            else:
+                match = _best_lastfm_album_match(artist_name, self.tags.album)
+            if match:
+                title, album_obj, score = match
+                log.debug(
+                    f"`network,tags`Album correction from {source}: {self.tags.album} -> {title} ({score:.3f})"
+                )
+                return title, album_obj, source
+
+        return self.tags.album, None, "none"
+
+    def _warn_track_count_mismatch(self, best_album: object, source: str) -> None:
+        title = getattr(best_album, "title", self.tags.album)
+        track_count = getattr(best_album, "track_count", None)
+        if track_count is None and isinstance(best_album, pylast.Album):
+            try:
+                track_count = len(list(best_album.get_tracks()))
+            except LASTFM_ERRORS:
+                log.warning(
+                    f"`network,tags`Failed to get track count for album '{title}'"
+                )
+                return
+        if track_count is not None and track_count != self.songdir.track_count:
+            log.warning(f"`network,tags`Track count mismatch for '{title}':")
+            log.warning(
+                f"`network,tags`Local: {self.songdir.track_count}, {source}: {track_count}"
+            )
 
     def _correct_track_title(self, track: pylast.Track) -> str:
         try:
@@ -237,14 +260,18 @@ class TaggedTrack:
         artist = self.artist.name or self.tags.artist
         title = self.track.title or self.tags.title
         if _lyrics_lookup_is_fresh(self.tags.lyrics_lookup, artist, title):
-            log.debug(f'`tags`Skipping lyrics fetch for "{artist} - {title}" (recent not_found marker exists)')
+            log.debug(
+                f'`tags`Skipping lyrics fetch for "{artist} - {title}" (recent not_found marker exists)'
+            )
             return
         lyrics = get_lyrics(artist, title)
         if lyrics:
             self.lyrics = lyrics
             self.tags.lyrics_lookup = None
         else:
-            self.tags.lyrics_lookup = LyricsLookup(checked_at=date.today(), artist=artist, title=title)
+            self.tags.lyrics_lookup = LyricsLookup(
+                checked_at=date.today(), artist=artist, title=title
+            )
 
     def get_audiotags(self) -> AudioTags:
         return AudioTags(
@@ -313,8 +340,40 @@ def _get_artist_albums(artist_name: str) -> List[pylast.TopItem]:
         _artist_albums_cache[artist_name] = top_albums
         return top_albums
     except LASTFM_ERRORS:
-        log.warning(f"`network,tags`Last.FM: Failed to get artist albums - {artist_name}")
+        log.warning(
+            f"`network,tags`Last.FM: Failed to get artist albums - {artist_name}"
+        )
         return []
+
+
+def _best_lastfm_album_match(
+    artist_name: str, album_title: str
+) -> tuple[str, pylast.Album, float] | None:
+    best_score = 0.0
+    best_album = None
+    for iter_album in _get_artist_albums(artist_name):
+        current_score = album_title_similarity(iter_album.item.title, album_title)
+        if current_score > best_score:
+            best_score = current_score
+            best_album = iter_album.item
+    if not best_album:
+        return None
+    return best_album.title, best_album, best_score
+
+
+def _best_musicbrainz_album_match(
+    artist_name: str, album_title: str
+) -> tuple[str, musicbrainz.AlbumCandidate, float] | None:
+    best_score = 0.0
+    best_album = None
+    for iter_album in musicbrainz.get_artist_albums(artist_name, album_title):
+        current_score = album_title_similarity(iter_album.title, album_title)
+        if current_score > best_score:
+            best_score = current_score
+            best_album = iter_album
+    if not best_album:
+        return None
+    return best_album.title, best_album, best_score
 
 
 def _get_tags(
@@ -364,7 +423,9 @@ def get_genre(tags: AudioTags) -> str:
         _genre_cache[cache_key] = genre
         return genre
     except LASTFM_ERRORS:
-        log.warning(f"`network,tags`Last.FM: Failed to get genre for {tags.artist} - {tags.album}")
+        log.warning(
+            f"`network,tags`Last.FM: Failed to get genre for {tags.artist} - {tags.album}"
+        )
         _genre_cache[cache_key] = ""
         return ""
 
@@ -377,6 +438,7 @@ def clear_cache() -> None:
     _album_tracks_cache.clear()
     _artist_tags_cache.clear()
     _album_tags_cache.clear()
+    musicbrainz.clear_cache()
     clear_cover_cache()
     log.debug("`state`All Last.FM caches cleared")
 
@@ -391,4 +453,5 @@ def get_cache_stats() -> Dict[str, int]:
         "artist_tags": len(_artist_tags_cache),
         "album_tags": len(_album_tags_cache),
         "album_covers": cover_cache_size(),
+        **musicbrainz.get_cache_stats(),
     }
