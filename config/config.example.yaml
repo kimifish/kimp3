@@ -4,33 +4,33 @@ interactive: true
 dry_run: false
 scan:
   dir_list:
-  - /home/kimifish/Music/Nirvana/1991. Nevermind-src
+    - /home/kimifish/Music/Nirvana/1991. Nevermind-src
   skip_dirs:
-  - .unwanted
-  - .AppleDouble
+    - .unwanted
+    - .AppleDouble
   delete_empty_dirs: true
   junk_files:
-  - .DS_Store
-  - Thumbs.db
-  - desktop.ini
-  - ehthumbs.db
-  - AlbumArtSmall.jpg
+    - .DS_Store
+    - Thumbs.db
+    - desktop.ini
+    - ehthumbs.db
+    - AlbumArtSmall.jpg
   valid_extensions:
-  - .mp3
-  - .flac
+    - .mp3
+    - .flac
   operation: auto
   force_external_move: false
   conflict_policy: keep-best
   force_replace: false
   create_symlinks_in_none: false
   common_files:
-  - AlbumArtSmall.jpg
-  - Folder.jpg
-  - Thumbs.db
-  - front.jpg
-  - Cover.jpg
-  - Cover.png
-  - front.jpeg
+    - AlbumArtSmall.jpg
+    - Folder.jpg
+    - Thumbs.db
+    - front.jpg
+    - Cover.jpg
+    - Cover.png
+    - front.jpeg
 collection:
   directory: ~/Music
   compilation_test: true

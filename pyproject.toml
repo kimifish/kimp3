@@ -10,56 +10,54 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 keywords = ["music", "mp3", "tags", "metadata", "lastfm", "audio", "cli"]
-authors = [
-    { name = "kimifish", email = "kimifish@proton.me" },
-]
+authors = [{ name = "kimifish", email = "kimifish@proton.me" }]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Multimedia :: Sound/Audio",
-    "Topic :: Utilities",
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Utilities",
 ]
 dependencies = [
-    "cyberlog>=0.2.1",
-    # Audio file handling
-    "mutagen>=1.47.0", # Low-level audio metadata
-    "music-tag>=0.4.3", # High-level tag manipulation
-    # Image processing
-    "pillow>=11.1.0", # Album cover processing
-    # Music metadata services
-    "pylast>=5.5.0", # Last.FM API client
-    "python3-discogs-client>=2.8", # Discogs API client
-    "requests>=2.31.0", # HTTP client for Genius and cover art
-    "beautifulsoup4>=4.13.3", # Lyrics parsing
-    # Configuration
-    "python-dotenv>=1.0.0", # API keys in .env
-    "pydantic>=2.0", # Configuration schemas
-    "pyyaml>=6.0", # YAML config loading
-    # CLI interface
-    "rich>=13.9.4", # Console output formatting
-    "httpx[socks]>=0.28.1",
+  "cyberlog>=0.2.1",
+  # Audio file handling
+  "mutagen>=1.47.0",  # Low-level audio metadata
+  "music-tag>=0.4.3", # High-level tag manipulation
+  # Image processing
+  "pillow>=11.1.0", # Album cover processing
+  # Music metadata services
+  "pylast>=5.5.0",               # Last.FM API client
+  "python3-discogs-client>=2.8", # Discogs API client
+  "requests>=2.31.0",            # HTTP client for Genius and cover art
+  "beautifulsoup4>=4.13.3",      # Lyrics parsing
+  # Configuration
+  "python-dotenv>=1.0.0", # API keys in .env
+  "pydantic>=2.0",        # Configuration schemas
+  "pyyaml>=6.0",          # YAML config loading
+  # CLI interface
+  "rich>=13.9.4",         # Console output formatting
+  "httpx[socks]>=0.28.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    # Development tools
-    "black>=23.0.0",         # Code formatting
-    "isort>=5.0.0",         # Import sorting
-    "mypy>=1.0.0",          # Type checking
-    "pylint>=3.0.0",        # Code linting
-    
-    # Testing
-    "pytest>=7.0.0",        # Unit testing
-    
-    # Debug and exploration
-    "ipython>=8.0.0",       # Enhanced REPL
-    "jupyter>=1.0.0",       # Notebook support
+  # Development tools
+  "black>=23.0.0", # Code formatting
+  "isort>=5.0.0",  # Import sorting
+  "mypy>=1.0.0",   # Type checking
+  "pylint>=3.0.0", # Code linting
+
+  # Testing
+  "pytest>=7.0.0", # Unit testing
+
+  # Debug and exploration
+  "ipython>=8.0.0", # Enhanced REPL
+  "jupyter>=1.0.0", # Notebook support
 ]
 
 [project.urls]

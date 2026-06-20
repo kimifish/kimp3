@@ -178,7 +178,7 @@ class ExecutionReporter:
         self.console = _console(console)
 
     def print_result(self, result: object, title: str = "Execution Result") -> None:
-        table = Table(title=title, show_header=True, header_style="bold magenta")
+        table = Table(title=title, show_header=True, header_style="bold magenta", min_width=80)
         table.add_column("Metric", style="cyan")
         table.add_column("Count", justify="right")
         table.add_row("success", str(getattr(result, "successes", 0)))

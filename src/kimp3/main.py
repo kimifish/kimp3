@@ -6,10 +6,12 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import List, Dict, Tuple, Callable
+from typing import Callable, Dict, List
+
 from rich.pretty import pretty_repr
-from kimp3.config import cfg, APP_NAME, HOME_DIR
-from kimp3.config_loader import load_logging_config
+
+from kimp3.config import APP_NAME, HOME_DIR, args, cfg, config_files, unknown
+from kimp3.config_loader import get_active_config_files, load_logging_config
 from kimp3.executor import OperationExecutor
 from kimp3.logging_setup import setup_logging
 from kimp3.reporting import ExecutionReporter, PlanReporter
@@ -20,6 +22,65 @@ from kimp3.interface.utils import sep_with_header
 setup_logging(load_logging_config(cfg, APP_NAME))
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
 log.info("`startup`" + str(datetime.today()) + " Starting...")
+
+
+def _log_startup_config() -> None:
+    log.info(
+        "`startup`Effective startup options:\n"
+        + pretty_repr(
+            {
+                "cli": {
+                    "config_file": args.config_file,
+                    "scan_dir": args.scan_dir,
+                    "dry": args.dry,
+                    "interactive": args.interactive,
+                    "unknown_args": unknown,
+                },
+                "config_files": [str(path) for path in get_active_config_files()]
+                or config_files,
+                "run": {
+                    "dry_run": cfg.dry_run,
+                    "interactive": cfg.interactive,
+                    "operation": cfg.scan.operation.value,
+                    "conflict_policy": cfg.scan.conflict_policy,
+                    "force_external_move": cfg.scan.force_external_move,
+                    "force_replace": cfg.scan.force_replace,
+                    "create_symlinks_in_none": cfg.scan.create_symlinks_in_none,
+                },
+                "scan": {
+                    "dir_list": cfg.scan.dir_list,
+                    "skip_dirs": cfg.scan.skip_dirs,
+                    "valid_extensions": cfg.scan.valid_extensions,
+                    "delete_empty_dirs": cfg.scan.delete_empty_dirs,
+                },
+                "collection": {
+                    "directory": cfg.collection.directory,
+                    "create_genre_links": cfg.collection.create_genre_links,
+                    "clean_symlinks": cfg.collection.clean_symlinks,
+                },
+                "tags": {
+                    "fetch_tags": cfg.tags.fetch_tags,
+                    "fetch_workers": cfg.tags.fetch_workers,
+                    "fetch_album_cover": cfg.tags.fetch_album_cover,
+                    "fetch_lyrics": cfg.tags.fetch_lyrics,
+                    "skip_existing_tags": cfg.tags.skip_existing_tags,
+                    "skip_existing_cover": cfg.tags.skip_existing_cover,
+                    "skip_existing_lyrics": cfg.tags.skip_existing_lyrics,
+                    "use_llm": cfg.tags.use_llm,
+                    "llm_url": cfg.tags.llm_url,
+                    "llm_timeout": cfg.tags.llm_timeout,
+                    "lastfm_api_key": bool(cfg.tags.lastfm_api_key),
+                    "lastfm_api_secret": bool(cfg.tags.lastfm_api_secret),
+                    "lastfm_username": bool(cfg.tags.lastfm_username),
+                    "lastfm_password_hash": bool(cfg.tags.lastfm_password_hash),
+                    "genius_token": bool(cfg.tags.genius_token),
+                },
+            }
+        )
+    )
+
+
+_log_startup_config()
 
 
 class ScanDir:

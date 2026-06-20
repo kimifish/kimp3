@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
+from hashlib import sha256
 from typing import Dict, List, Optional, Tuple
 
 import pylast
@@ -9,7 +11,7 @@ from rich.pretty import pretty_repr
 from kimp3.config import APP_NAME, cfg
 from kimp3.covers import clear_cover_cache, cover_cache_size, get_album_cover
 from kimp3.lyrics import get_lyrics
-from kimp3.models import AbstractSongDir, AudioTags
+from kimp3.models import AbstractSongDir, AudioTags, LyricsLookup
 from kimp3.strings_operations import string_similarity
 from kimp3.tag_processing import NUMBER_OF_TAGS, TAG_MIN_WEIGHT, process_lastfm_tags
 
@@ -24,6 +26,25 @@ _album_tracks_cache: Dict[Tuple[str, str], List[pylast.Track]] = {}
 _genre_cache: Dict[Tuple[str, str], str] = {}
 _artist_tags_cache: Dict[str, List[pylast.TopItem]] = {}
 _album_tags_cache: Dict[Tuple[str, str], List[pylast.TopItem]] = {}
+
+
+def _lyrics_retry_days(artist: str, title: str) -> int:
+    jitter_days = max(0, cfg.tags.lyrics_not_found_retry_jitter_days)
+    if jitter_days == 0:
+        return max(1, cfg.tags.lyrics_not_found_retry_days)
+    digest = sha256(f"{artist}\0{title}".encode("utf-8")).digest()
+    jitter = int.from_bytes(digest[:2], "big") % (jitter_days + 1)
+    return max(1, cfg.tags.lyrics_not_found_retry_days + jitter)
+
+
+def _lyrics_lookup_is_fresh(lookup: LyricsLookup | None, artist: str, title: str) -> bool:
+    if not lookup or lookup.status != "not_found":
+        return False
+    if lookup.artist and lookup.artist != artist:
+        return False
+    if lookup.title and lookup.title != title:
+        return False
+    return (date.today() - lookup.checked_at).days < _lyrics_retry_days(artist, title)
 
 
 class TaggedTrack:
@@ -211,12 +232,19 @@ class TaggedTrack:
                 f"`tags`Skipping lyrics fetch for {self.artist.name} - {self.track.title} (lyrics already exist)"
             )
             self.lyrics = self.tags.lyrics_text
+            self.tags.lyrics_lookup = None
             return
-        lyrics = get_lyrics(
-            self.artist.name or self.tags.artist, self.track.title or self.tags.title
-        )
+        artist = self.artist.name or self.tags.artist
+        title = self.track.title or self.tags.title
+        if _lyrics_lookup_is_fresh(self.tags.lyrics_lookup, artist, title):
+            log.debug(f'`tags`Skipping lyrics fetch for "{artist} - {title}" (recent not_found marker exists)')
+            return
+        lyrics = get_lyrics(artist, title)
         if lyrics:
             self.lyrics = lyrics
+            self.tags.lyrics_lookup = None
+        else:
+            self.tags.lyrics_lookup = LyricsLookup(checked_at=date.today(), artist=artist, title=title)
 
     def get_audiotags(self) -> AudioTags:
         return AudioTags(
@@ -235,6 +263,7 @@ class TaggedTrack:
             album_cover=self.tags.album_cover,
             album_cover_mime=self.tags.album_cover_mime,
             lyrics=self.lyrics,
+            lyrics_lookup=None if self.lyrics else self.tags.lyrics_lookup,
         )
 
 

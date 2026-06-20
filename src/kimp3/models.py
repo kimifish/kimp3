@@ -5,15 +5,17 @@ This module contains the core data structures used throughout the application
 for representing audio metadata, file operations, and configuration options.
 """
 
-from enum import Enum
-from pathlib import Path
-from typing import Literal, Optional, List, Set, Dict
+import json
 import logging
 from abc import ABC, abstractmethod
+from datetime import date
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, Set
 
-from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from mutagen.id3 import ID3
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 #from kimp3.config import APP_NAME
 APP_NAME = 'kimp3'
@@ -97,6 +99,17 @@ class Lyrics(BaseModel):
     description: str = ""
 
 
+class LyricsLookup(BaseModel):
+    """Embedded state for lyrics lookup attempts."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    status: Literal["not_found"] = "not_found"
+    checked_at: date
+    artist: str = ""
+    title: str = ""
+
+
 def _split_tag_list(value: object) -> list[str]:
     if value is None:
         return []
@@ -126,6 +139,7 @@ class AudioTags(BaseModel):
     rating: int | None = None
     artwork: Artwork | None = None
     lyrics: Lyrics | None = None
+    lyrics_lookup: LyricsLookup | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -158,6 +172,15 @@ class AudioTags(BaseModel):
         if isinstance(data.get("lyrics"), str):
             text = data["lyrics"].strip()
             data["lyrics"] = {"text": text} if text else None
+        if isinstance(data.get("lyrics_lookup"), str):
+            text = data["lyrics_lookup"].strip()
+            if text:
+                try:
+                    data["lyrics_lookup"] = LyricsLookup.model_validate(json.loads(text))
+                except (json.JSONDecodeError, ValidationError):
+                    data["lyrics_lookup"] = None
+            else:
+                data["lyrics_lookup"] = None
         return data
 
     @field_validator("title", "artist", "album", "album_artist", "comment", mode="before")
@@ -288,6 +311,7 @@ class AudioTags(BaseModel):
             self.album_cover,
             self.album_cover_mime if self.album_cover else None,
             self.lyrics.model_dump() if self.lyrics else None,
+            self.lyrics_lookup.model_dump() if self.lyrics_lookup else None,
         )
 
     def managed_equals(self, other: 'AudioTags') -> bool:
@@ -354,7 +378,8 @@ class AudioTags(BaseModel):
             rating=comments.get('Rating', '').replace('Rating: ', ''),
             album_cover=cover_data,
             album_cover_mime=cover_mime,
-            lyrics=lyrics
+            lyrics=lyrics,
+            lyrics_lookup=comments.get('KiMP3 lyrics lookup') or None,
         )
 
     @staticmethod

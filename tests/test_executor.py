@@ -13,7 +13,12 @@ class FakeBackend:
 
 class DummyAudioFile:
     def __init__(
-        self, source: Path, target: Path, link: Path, requires_tag_write: bool = True
+        self,
+        source: Path,
+        target: Path,
+        link: Path,
+        requires_tag_write: bool = True,
+        operation: FileOperation = FileOperation.COPY,
     ):
         source_tags = AudioTags(
             title="Old" if requires_tag_write else "Song", artist="Artist"
@@ -29,7 +34,7 @@ class DummyAudioFile:
                 source_path=source,
                 target_path=target,
                 genre_links=[link],
-                operation=FileOperation.COPY,
+                operation=operation,
             ),
             tags=build_tag_change_plan(source_tags, target_tags),
         )
@@ -96,6 +101,58 @@ def test_operation_executor_dry_run_creates_nothing(monkeypatch, tmp_path):
     assert not link.exists()
     assert audio_file.filepath == source
     assert audio_file.write_calls == 0
+
+
+def test_operation_executor_move_same_file_with_relative_source(
+    monkeypatch, tmp_path
+):
+    target = tmp_path / "library" / "Artist" / "song.mp3"
+    source = Path("library") / "Artist" / "song.mp3"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"audio")
+    monkeypatch.chdir(tmp_path)
+    audio_file = DummyAudioFile(
+        source,
+        target,
+        link,
+        requires_tag_write=False,
+        operation=FileOperation.MOVE,
+    )
+    monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
+
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
+
+    assert result.as_tuple() == (1, 0, 0)
+    assert target.read_bytes() == b"audio"
+    assert audio_file.filepath == target
+    assert audio_file.write_calls == 0
+    assert link.is_symlink()
+
+
+def test_operation_executor_copy_same_file_with_relative_source(
+    monkeypatch, tmp_path
+):
+    target = tmp_path / "library" / "Artist" / "song.mp3"
+    source = Path("library") / "Artist" / "song.mp3"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"audio")
+    monkeypatch.chdir(tmp_path)
+    audio_file = DummyAudioFile(source, target, link, requires_tag_write=False)
+    monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
+
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
+
+    assert result.as_tuple() == (1, 0, 0)
+    assert target.read_bytes() == b"audio"
+    assert audio_file.filepath == target
+    assert audio_file.write_calls == 0
+    assert link.is_symlink()
 
 
 def test_operation_executor_replaces_existing_when_decided(monkeypatch, tmp_path):

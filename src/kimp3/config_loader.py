@@ -126,7 +126,7 @@ def default_logging_config() -> dict[str, Any]:
         "logs_width": 140,
         "tags_width": 14,
         "tag_filter_mode": "any",
-        "unknown_tags": "hide",
+        "unknown_tags": "show",
         "show_all_tags_errors": True,
         "show_all_tags_warnings": True,
         "loggers": {
@@ -169,7 +169,7 @@ def default_logging_config() -> dict[str, Any]:
                 "icon_color": "#ffffff",
             },
             "network": {
-                "show": False,
+                "show": True,
                 "icon": "net",
                 "tag_color": "#444444",
                 "icon_color": "#ffffff",

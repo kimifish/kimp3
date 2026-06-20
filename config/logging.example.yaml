@@ -1,9 +1,57 @@
-level: "DEBUG"
+level: DEBUG
+handler_level: NOTSET
+console: true
+file_enabled: false
+show_time: true
+time_format: "%H:%M:%S"
+show_level: false
+show_path: false
+logs_width: 140
+tags_width: 14
+unknown_tags: show
+tag_filter_mode: any
+show_all_tags_errors: true
+show_all_tags_warnings: true
 loggers:
-  suppress:
-    - "httpx"
-    - "httpcore"
-    - "mutagen"
-    - "pylast"
-    - "urllib3.connectionpool"
-  suppress_level: "WARNING"
+  httpx: WARNING
+  httpcore: WARNING
+  mutagen: WARNING
+  pylast: WARNING
+  urllib3.connectionpool: WARNING
+  PIL: WARNING
+tags:
+  startup:
+    show: true
+    icon: S
+    tag_color: "#5f875f"
+    icon_color: "#ffffff"
+  config:
+    show: true
+    icon: cfg
+    tag_color: "#5f5f87"
+    icon_color: "#ffffff"
+  scan:
+    show: true
+    icon: scan
+    tag_color: "#005f87"
+    icon_color: "#ffffff"
+  tags:
+    show: true
+    icon: tag
+    tag_color: "#875f00"
+    icon_color: "#ffffff"
+  files:
+    show: true
+    icon: file
+    tag_color: "#5f5f5f"
+    icon_color: "#ffffff"
+  network:
+    show: true
+    icon: net
+    tag_color: "#444444"
+    icon_color: "#ffffff"
+  state:
+    show: true
+    icon: st
+    tag_color: "#875f00"
+    icon_color: "#ffffff"

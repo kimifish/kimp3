@@ -1,6 +1,9 @@
-import pytest
+from datetime import date
 from pathlib import Path
-from kimp3.models import AudioTags, FileOperation, Lyrics, TrackNumber, UsualFile
+
+import pytest
+
+from kimp3.models import AudioTags, FileOperation, Lyrics, LyricsLookup, TrackNumber, UsualFile
 
 class MockMutagenFile:
     """Mock класс для имитации mutagen.File"""
@@ -81,6 +84,16 @@ class TestAudioTags:
         assert tags.rating == 80
         assert isinstance(tags.lyrics, Lyrics)
         assert tags.lyrics.text == "words"
+
+    def test_audio_tags_parses_lyrics_lookup_json(self):
+        tags = AudioTags(
+            lyrics_lookup='{"status":"not_found","checked_at":"2026-06-18","artist":"A","title":"T"}'
+        )
+
+        assert isinstance(tags.lyrics_lookup, LyricsLookup)
+        assert tags.lyrics_lookup.checked_at == date(2026, 6, 18)
+        assert tags.lyrics_lookup.artist == "A"
+        assert tags.lyrics_lookup.title == "T"
 
     def test_from_mutagen_minimal(self, minimal_tags_dict):
         """Тест создания AudioTags из минимального набора тегов"""

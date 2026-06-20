@@ -23,6 +23,14 @@ log = logging.getLogger(f"{APP_NAME}.{__name__}")
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
+def _same_file_path(source_path: Path, target_path: Path) -> bool:
+    """Return True when two paths point to the same filesystem entry."""
+    try:
+        return os.path.samefile(source_path, target_path)
+    except OSError:
+        return source_path.resolve(strict=False) == target_path.resolve(strict=False)
+
+
 @dataclass
 class ExecutionResult:
     """Summary of plan execution."""
@@ -202,6 +210,14 @@ class OperationExecutor:
         plan = audio_file.operation_plan
         target_path = plan.path.target_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
+        if _same_file_path(plan.path.source_path, target_path):
+            audio_file.filepath = target_path
+            if plan.requires_tag_write and not audio_file.write_tags():
+                audio_file.tag_write_success = False
+                raise RuntimeError("Tag write/verify failed")
+            audio_file.operation_processed = FileOperation.COPY
+            audio_file.tag_write_success = True
+            return
         tmp_path = target_path.with_name(
             f".{target_path.stem}.tmp-kimp3{target_path.suffix}"
         )
@@ -236,7 +252,8 @@ class OperationExecutor:
             audio_file.tag_write_success = False
             raise RuntimeError("Tag write/verify failed")
         audio_file.tag_write_success = True
-        if audio_file.filepath == target_path:
+        if _same_file_path(audio_file.filepath, target_path):
+            audio_file.filepath = target_path
             audio_file.operation_processed = FileOperation.MOVE
             return
         if target_path.exists() and plan.replace_existing:

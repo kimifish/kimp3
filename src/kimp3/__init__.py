@@ -10,4 +10,5 @@ def main() -> int:
 
     return run_main()
 
+
 __all__ = ["main", "__version__"]

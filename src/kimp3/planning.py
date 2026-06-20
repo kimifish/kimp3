@@ -261,6 +261,7 @@ MANAGED_TAG_FIELDS = [
     "rating",
     "artwork",
     "lyrics",
+    "lyrics_lookup",
 ]
 
 

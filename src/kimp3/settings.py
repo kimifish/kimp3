@@ -112,6 +112,8 @@ class TagsSettings(BaseModel):
     fetch_workers: int = 4
     fetch_album_cover: bool = True
     fetch_lyrics: bool = True
+    lyrics_not_found_retry_days: int = 90
+    lyrics_not_found_retry_jitter_days: int = 30
     skip_existing_tags: bool = True
     skip_existing_cover: bool = True
     skip_existing_lyrics: bool = True

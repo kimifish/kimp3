@@ -34,19 +34,28 @@ tags:
     - blues
     - bollywood
     - breakbeat
+    - britpop
     - cajun
     - calypso
     - celtic
     - chanson
     - chillout
+    - chillwave
     - chiptune
     - cinematic
     - classical
+    - contemporary folk
+    - contemporary jazz
     - country
     - cumbia
     - dance
     - dancehall
+    - dark ambient
+    - dark folk
+    - dark jazz
+    - dark synth
     - dark wave
+    - desert blues
     - disco
     - downtempo
     - drone
@@ -54,12 +63,17 @@ tags:
     - dub
     - dubstep
     - electro
+    - electro swing
     - electronic
+    - ethno jazz
     - experimental
     - fado
     - flamenco
     - folk
+    - folk jazz
+    - folk rock
     - funk
+    - fusion jazz
     - gospel
     - goth
     - grime
@@ -71,20 +85,26 @@ tags:
     - indie
     - industrial
     - jazz
+    - jazz fusion
+    - jazz-funk
     - jungle
     - latin
     - lo-fi
     - lounge
+    - medieval folk
     - metal
     - new age
+    - neofolk
     - new wave
     - noise
+    - nu jazz
     - opera
     - pop
     - post-punk
     - post-rock
     - punk
     - r&b
+    - ragga
     - reggae
     - reggaeton
     - rock
@@ -170,7 +190,6 @@ tags:
     - bossa nova
     - breakcore
     - breaks
-    - britpop
     - brostep
     - bubblegum pop
     - c-pop
@@ -185,7 +204,6 @@ tags:
     - chicago house
     - chillstep
     - chillsynth
-    - chillwave
     - christian hip hop
     - christian metal
     - christian rock
@@ -197,8 +215,6 @@ tags:
     - complextro
     - conscious rap
     - contemporary classical
-    - contemporary folk
-    - contemporary jazz
     - contemporary r&b
     - cool jazz
     - country blues
@@ -215,12 +231,8 @@ tags:
     - d-beat
     - dance-pop
     - dance-punk
-    - dark ambient
     - dark cabaret
     - dark electro
-    - dark folk
-    - dark jazz
-    - dark synth
     - darkstep
     - darksynth
     - death industrial
@@ -234,7 +246,6 @@ tags:
     - deep soul
     - deep techno
     - delta blues
-    - desert blues
     - desert rock
     - detroit techno
     - digital hardcore
@@ -253,7 +264,6 @@ tags:
     - eastern european folk
     - ebm
     - edm
-    - electro swing
     - electro-industrial
     - electroacoustic
     - electroclash
@@ -263,24 +273,20 @@ tags:
     - emo
     - emo rap
     - ethereal
-    - ethno jazz
     - euro house
     - euro pop
     - eurobeat
     - eurodance
     - experimental rock
-    - folk jazz
     - folk metal
     - folk pop
     - folk punk
-    - folk rock
     - folktronica
     - freak folk
     - free jazz
     - french house
     - funk metal
     - funk rock
-    - fusion jazz
     - future bass
     - future funk
     - future garage
@@ -328,10 +334,8 @@ tags:
     - j-rock
     - jam band
     - jangle pop
-    - jazz fusion
     - jazz rap
     - jazz rock
-    - jazz-funk
     - jazztronica
     - jug band
     - k-pop
@@ -348,7 +352,6 @@ tags:
     - math rock
     - mathcore
     - medieval
-    - medieval folk
     - melodic black metal
     - melodic death metal
     - melodic metalcore
@@ -364,7 +367,6 @@ tags:
     - neo-prog
     - neo-psychedelia
     - neo-soul
-    - neofolk
     - neotraditional country
     - new beat
     - new jack swing
@@ -373,7 +375,6 @@ tags:
     - no wave
     - noise rock
     - northern soul
-    - nu jazz
     - nu metal
     - oi!
     - old school hip hop
@@ -409,7 +410,6 @@ tags:
     - qawwali
     - queercore
     - raga rock
-    - ragga
     - raggamuffin
     - ragtime
     - rap
@@ -538,7 +538,6 @@ tags:
     bossa nova: latin
     breakcore: breakbeat
     breaks: breakbeat
-    britpop: rock
     brostep: dubstep
     bubblegum pop: pop
     c-pop: pop
@@ -553,7 +552,6 @@ tags:
     chicago house: house
     chillstep: dubstep
     chillsynth: synthwave
-    chillwave: synthwave
     christian hip hop: hip hop
     christian metal: metal
     christian rock: rock
@@ -565,8 +563,6 @@ tags:
     complextro: house
     conscious rap: hip hop
     contemporary classical: classical
-    contemporary folk: folk
-    contemporary jazz: jazz
     contemporary r&b: r&b
     cool jazz: jazz
     country blues: blues
@@ -583,12 +579,8 @@ tags:
     d-beat: punk
     dance-pop: pop
     dance-punk: punk
-    dark ambient: ambient
     dark cabaret: goth
     dark electro: electro
-    dark folk: folk
-    dark jazz: jazz
-    dark synth: synthwave
     darkstep: drum and bass
     darksynth: synthwave
     death industrial: industrial
@@ -602,7 +594,6 @@ tags:
     deep soul: soul
     deep techno: techno
     delta blues: blues
-    desert blues: blues
     desert rock: rock
     detroit techno: techno
     digital hardcore: hardcore
@@ -621,7 +612,6 @@ tags:
     eastern european folk: folk
     ebm: industrial
     edm: dance
-    electro swing: swing
     electro-industrial: industrial
     electroacoustic: experimental
     electroclash: electro
@@ -631,24 +621,20 @@ tags:
     emo: rock
     emo rap: hip hop
     ethereal: ambient
-    ethno jazz: jazz
     euro house: house
     euro pop: pop
     eurobeat: dance
     eurodance: dance
     experimental rock: rock
-    folk jazz: jazz
     folk metal: metal
     folk pop: folk
     folk punk: punk
-    folk rock: folk
     folktronica: folk
     freak folk: folk
     free jazz: jazz
     french house: house
     funk metal: metal
     funk rock: funk
-    fusion jazz: jazz
     future bass: electronic
     future funk: vaporwave
     future garage: uk garage
@@ -696,10 +682,8 @@ tags:
     j-rock: rock
     jam band: rock
     jangle pop: pop
-    jazz fusion: jazz
     jazz rap: hip hop
     jazz rock: jazz
-    jazz-funk: jazz
     jazztronica: jazz
     jug band: folk
     k-pop: pop
@@ -716,7 +700,6 @@ tags:
     math rock: rock
     mathcore: metal
     medieval: classical
-    medieval folk: folk
     melodic black metal: metal
     melodic death metal: metal
     melodic metalcore: metal
@@ -732,7 +715,6 @@ tags:
     neo-prog: rock
     neo-psychedelia: rock
     neo-soul: soul
-    neofolk: folk
     neotraditional country: country
     new beat: dance
     new jack swing: r&b
@@ -741,7 +723,6 @@ tags:
     no wave: avant-garde
     noise rock: rock
     northern soul: soul
-    nu jazz: jazz
     nu metal: metal
     oi!: punk
     old school hip hop: hip hop
@@ -777,7 +758,6 @@ tags:
     qawwali: world music
     queercore: punk
     raga rock: rock
-    ragga: reggae
     raggamuffin: reggae
     ragtime: jazz
     rap: hip hop
