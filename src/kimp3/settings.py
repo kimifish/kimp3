@@ -82,9 +82,13 @@ class CollectionSettings(BaseModel):
 class PathPatternsSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    album: str = "%album_artist/%year - %album_title/%track_num. %song_title.mp3"
+    album: str = (
+        "%album_artist/%year - %album_title/"
+        "%?disc_num{%disc_num-}%track_num. %song_title.mp3"
+    )
     compilation: str = (
-        "_Compilations/%album_title/%track_num. %song_artist - %song_title.mp3"
+        "_Compilations/%album_title/"
+        "%?disc_num{%disc_num-}%track_num. %song_artist - %song_title.mp3"
     )
     genre: str = "_Genres/%genre/%year. %song_artist - %song_title.mp3"
 

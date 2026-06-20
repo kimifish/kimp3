@@ -39,8 +39,8 @@ collection:
   clean_symlinks: true
 paths:
   patterns:
-    album: '%album_artist/%year - %album_title (CD%disc_num)/%track_num. %song_title.%ext'
-    compilation: _Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.%ext
+    album: "%album_artist/%year - %album_title/%?disc_num{%disc_num-}%track_num. %song_title.%ext"
+    compilation: _Сборники/%album_title/%?disc_num{%disc_num-}%track_num. %song_artist - %song_title.%ext
     genre: _Жанры/%genre/%year. %song_artist - %song_title.%ext
   cache_dir: /home/kimifish/.cache/kimp3
 tags:

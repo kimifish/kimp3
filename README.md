@@ -181,8 +181,8 @@ Paths are planned relative to `collection.directory`.
 ```yaml
 paths:
   patterns:
-    album: '%album_artist/%year - %album_title (CD%disc_num)/%track_num. %song_title.%ext'
-    compilation: '_Сборники/%album_title (CD%disc_num)/%track_num. %song_artist - %song_title.%ext'
+    album: '%album_artist/%year - %album_title/%?disc_num{%disc_num-}%track_num. %song_title.%ext'
+    compilation: '_Сборники/%album_title/%?disc_num{%disc_num-}%track_num. %song_artist - %song_title.%ext'
     genre: '_Жанры/%genre/%year. %song_artist - %song_title.%ext'
 ```
 
@@ -200,6 +200,23 @@ Supported variables:
 - `%ext`
 
 Unknown pattern variables are validation errors. Path components are sanitized before use.
+
+Optional fragments use `%?field{...}`. The text inside braces is rendered only when
+`field` is present; otherwise the whole fragment is removed with its punctuation and
+spaces. For `%?disc_num{...}`, the fragment is rendered only for multi-disc albums
+where `total_discs > 1` and `disc_number` is set.
+
+Example single-disc result:
+
+```text
+Artist/2024 - Album/01. Song.mp3
+```
+
+Example multi-disc result:
+
+```text
+Artist/2024 - Album/2-01. Song.mp3
+```
 
 ## Cleanup
 

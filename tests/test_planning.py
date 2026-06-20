@@ -60,9 +60,110 @@ def test_ext_variable_preserves_source_extension(tmp_path):
     assert plan.target_path == tmp_path / "library" / "Artist" / "Track.mp3"
 
 
+def test_conditional_disc_prefix_is_removed_for_single_disc_album(tmp_path):
+    settings = Settings.model_validate(
+        {
+            "collection": {"directory": str(tmp_path / "library")},
+            "paths": {
+                "patterns": {
+                    "album": (
+                        "%album_artist/%year - %album_title/"
+                        "%?disc_num{%disc_num-}%track_num. %song_title.%ext"
+                    )
+                }
+            },
+        }
+    )
+    tags = AudioTags(
+        title="Track",
+        artist="Artist",
+        album="Album",
+        album_artist="Artist",
+        track_number=1,
+        disc_number=1,
+        total_discs=1,
+        year=2024,
+    )
+
+    plan = build_path_plan(tmp_path / "incoming" / "song.mp3", tags, DummySongDir(), settings)
+
+    assert plan.target_path == (
+        tmp_path / "library" / "Artist" / "2024 - Album" / "01. Track.mp3"
+    )
+
+
+def test_conditional_disc_prefix_is_used_for_multi_disc_album(tmp_path):
+    settings = Settings.model_validate(
+        {
+            "collection": {"directory": str(tmp_path / "library")},
+            "paths": {
+                "patterns": {
+                    "album": (
+                        "%album_artist/%year - %album_title/"
+                        "%?disc_num{%disc_num-}%track_num. %song_title.%ext"
+                    )
+                }
+            },
+        }
+    )
+    tags = AudioTags(
+        title="Track",
+        artist="Artist",
+        album="Album",
+        album_artist="Artist",
+        track_number=1,
+        disc_number=2,
+        total_discs=3,
+        year=2024,
+    )
+
+    plan = build_path_plan(tmp_path / "incoming" / "song.flac", tags, DummySongDir(), settings)
+
+    assert plan.target_path == (
+        tmp_path / "library" / "Artist" / "2024 - Album" / "2-01. Track.flac"
+    )
+
+
+def test_conditional_fragment_removes_surrounding_punctuation(tmp_path):
+    settings = Settings.model_validate(
+        {
+            "collection": {"directory": str(tmp_path / "library")},
+            "paths": {
+                "patterns": {
+                    "album": (
+                        "%album_artist/%year - %album_title%?disc_num{ (CD%disc_num)}"
+                        "/%track_num. %song_title.%ext"
+                    )
+                }
+            },
+        }
+    )
+    tags = AudioTags(
+        title="Track",
+        artist="Artist",
+        album="Album",
+        album_artist="Artist",
+        track_number=1,
+        disc_number=1,
+        total_discs=1,
+        year=2024,
+    )
+
+    plan = build_path_plan(tmp_path / "incoming" / "song.mp3", tags, DummySongDir(), settings)
+
+    assert plan.target_path == (
+        tmp_path / "library" / "Artist" / "2024 - Album" / "01. Track.mp3"
+    )
+
+
 def test_unknown_pattern_variable_is_rejected():
     with pytest.raises(PlanValidationError):
         validate_pattern_variables("%artist/%song_title.mp3")
+
+
+def test_unknown_conditional_pattern_variable_is_rejected():
+    with pytest.raises(PlanValidationError):
+        validate_pattern_variables("%?artist{%artist - }%song_title.mp3")
 
 
 def test_duplicate_target_paths_are_detected(tmp_path):

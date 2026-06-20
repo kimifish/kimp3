@@ -2,7 +2,7 @@
 KiMP3 - Self-contained music library manager
 """
 
-__version__ = "1.1.2"
+__version__ = "1.4.1"
 
 
 def main() -> int:

@@ -110,6 +110,8 @@ KNOWN_PATTERN_VARIABLES = {
     "ext",
 }
 
+CONDITIONAL_PATTERN = re.compile(r"%\?([A-Za-z_][A-Za-z0-9_]*)\{([^{}]*)\}")
+
 
 def is_inside_collection(source_path: Path, collection_dir: Path) -> bool:
     """Return True when source_path is collection_dir or below it."""
@@ -134,7 +136,18 @@ def resolve_operation(
 
 def validate_pattern_variables(pattern: str) -> None:
     """Reject unknown %variables before touching the filesystem."""
-    unknown = sorted(set(re.findall(r"%([A-Za-z_][A-Za-z0-9_]*)", pattern)) - KNOWN_PATTERN_VARIABLES)
+    unknown = sorted(
+        set(re.findall(r"%([A-Za-z_][A-Za-z0-9_]*)", pattern))
+        - KNOWN_PATTERN_VARIABLES
+    )
+    unknown.extend(
+        field
+        for field in sorted(
+            set(re.findall(r"%\?([A-Za-z_][A-Za-z0-9_]*)\{", pattern))
+            - KNOWN_PATTERN_VARIABLES
+        )
+        if field not in unknown
+    )
     if unknown:
         raise PlanValidationError(f"Unknown pattern variables: {', '.join(unknown)}")
 
@@ -156,10 +169,38 @@ def build_tag_mapping(tags: AudioTags, source_path: Path) -> dict[str, str]:
     }
 
 
-def render_pattern(pattern: str, mapping: dict[str, str]) -> Path:
+def build_condition_mapping(tags: AudioTags, source_path: Path) -> dict[str, bool]:
+    """Build field presence flags used by conditional path fragments."""
+    return {
+        "song_title": bool(tags.title),
+        "song_artist": bool(tags.artist),
+        "album_title": bool(tags.album),
+        "album_artist": bool(tags.album_artist),
+        "track_num": bool(tags.track_number),
+        "num_of_tracks": bool(tags.total_tracks),
+        "disc_num": bool(
+            tags.disc_number and tags.total_discs and int(tags.total_discs) > 1
+        ),
+        "genre": bool(tags.genre),
+        "year": bool(tags.year),
+        "ext": bool(source_path.suffix),
+    }
+
+
+def render_pattern(
+    pattern: str,
+    mapping: dict[str, str],
+    conditions: dict[str, bool] | None = None,
+) -> Path:
     """Render a slash-separated pattern into a relative sanitized path."""
     validate_pattern_variables(pattern)
-    rendered = pattern
+    conditions = conditions or {field: bool(value) for field, value in mapping.items()}
+
+    def render_conditional(match: re.Match[str]) -> str:
+        field, content = match.groups()
+        return content if conditions.get(field, False) else ""
+
+    rendered = CONDITIONAL_PATTERN.sub(render_conditional, pattern)
     for variable, value in mapping.items():
         rendered = rendered.replace(f"%{variable}", value or "Unknown")
     parts = [sanitize_path_component(part) for part in rendered.split("/") if part]
@@ -183,12 +224,10 @@ def build_path_plan(
 
     album_pattern = settings.paths.patterns.compilation if getattr(song_dir, "is_compilation", False) else settings.paths.patterns.album
     genre_pattern = settings.paths.patterns.genre
-    if not tags.total_discs or int(tags.total_discs) <= 1:
-        album_pattern = album_pattern.replace(" (CD%disc_num)", "")
-        genre_pattern = genre_pattern.replace(" (CD%disc_num)", "")
 
     mapping = build_tag_mapping(tags, source_path)
-    target_path = source_path if operation == FileOperation.NONE else collection_dir / render_pattern(album_pattern, mapping)
+    conditions = build_condition_mapping(tags, source_path)
+    target_path = source_path if operation == FileOperation.NONE else collection_dir / render_pattern(album_pattern, mapping, conditions)
     if operation != FileOperation.NONE and target_path.suffix.lower() != source_path.suffix.lower():
         raise PlanValidationError(f"Target extension {target_path.suffix} differs from source extension {source_path.suffix}")
 
@@ -198,7 +237,9 @@ def build_path_plan(
         for genre in str(tags.genre).split(","):
             genre_mapping = dict(mapping)
             genre_mapping["genre"] = sanitize_path_component(genre.strip())
-            genre_links.append(collection_dir / render_pattern(genre_pattern, genre_mapping))
+            genre_conditions = dict(conditions)
+            genre_conditions["genre"] = bool(genre.strip())
+            genre_links.append(collection_dir / render_pattern(genre_pattern, genre_mapping, genre_conditions))
 
     return PathPlan(source_path=source_path, target_path=target_path, genre_links=genre_links, operation=operation)
 
