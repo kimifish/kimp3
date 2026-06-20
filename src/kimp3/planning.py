@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from mutagen import File as MutagenFile
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from kimp3.models import AudioTags, FileOperation
 from kimp3.strings_operations import sanitize_path_component
@@ -22,6 +22,26 @@ class PathPlan(BaseModel):
     genre_links: list[Path] = Field(default_factory=list)
     operation: FileOperation
     warnings: list[str] = Field(default_factory=list)
+
+    @field_validator("source_path", "target_path", mode="before")
+    @classmethod
+    def normalize_path(cls, value: object) -> Path:
+        return Path(value).expanduser().resolve(strict=False)
+
+    @field_validator("genre_links", mode="before")
+    @classmethod
+    def normalize_genre_links(cls, value: object) -> list[Path]:
+        if value is None:
+            return []
+        return [
+            absolute_path_without_symlink_resolution(path)
+            for path in value  # type: ignore[union-attr]
+        ]
+
+
+def absolute_path_without_symlink_resolution(value: str | Path) -> Path:
+    """Return an absolute path without following existing symlinks."""
+    return Path(os.path.abspath(Path(value).expanduser()))
 
 
 class TagFieldChange(BaseModel):
@@ -215,6 +235,7 @@ def build_path_plan(
 ) -> PathPlan:
     """Build target path, genre links, and resolved operation without side effects."""
     collection_dir = Path(settings.collection.directory)
+    genre_base = _configured_genre_base_dir(settings)
     operation = resolve_operation(
         settings.scan.operation,
         source_path,
@@ -239,7 +260,21 @@ def build_path_plan(
             genre_mapping["genre"] = sanitize_path_component(genre.strip())
             genre_conditions = dict(conditions)
             genre_conditions["genre"] = bool(genre.strip())
-            genre_links.append(collection_dir / render_pattern(genre_pattern, genre_mapping, genre_conditions))
+            genre_link = collection_dir / render_pattern(
+                genre_pattern, genre_mapping, genre_conditions
+            )
+            genre_errors = validate_genre_link_paths(
+                PathPlan(
+                    source_path=source_path,
+                    target_path=target_path,
+                    genre_links=[genre_link],
+                    operation=operation,
+                ),
+                genre_base,
+            )
+            if genre_errors:
+                raise PlanValidationError("; ".join(genre_errors))
+            genre_links.append(genre_link)
 
     return PathPlan(source_path=source_path, target_path=target_path, genre_links=genre_links, operation=operation)
 
@@ -299,9 +334,11 @@ def build_operation_plan(
 def validate_audio_plans(plans: list[PathPlan]) -> list[str]:
     """Return pre-execution validation errors for planned paths."""
     from kimp3.backends import get_backend
+    from kimp3.config import cfg
 
     errors: list[str] = []
     targets: dict[Path, Path] = {}
+    genre_base = _configured_genre_base_dir(cfg)
     for plan in plans:
         if plan.operation == FileOperation.NONE:
             continue
@@ -321,12 +358,41 @@ def validate_audio_plans(plans: list[PathPlan]) -> list[str]:
             get_backend(plan.source_path)
         except ValueError as error:
             errors.append(str(error))
+        errors.extend(validate_genre_link_paths(plan, genre_base))
     return errors
+
+
+def validate_genre_link_paths(
+    plan: PathPlan, genre_base: Path | None = None
+) -> list[str]:
+    """Return errors for unsafe planned genre symlink paths."""
+    errors: list[str] = []
+    target = plan.target_path.resolve(strict=False)
+    for link_path in plan.genre_links:
+        link = absolute_path_without_symlink_resolution(link_path)
+        if link == target:
+            errors.append(f"Genre symlink points to itself: {link_path}")
+        if genre_base is not None and link != genre_base and genre_base not in link.parents:
+            errors.append(f"Genre symlink outside genre directory: {link_path}")
+    return errors
+
+
+def _configured_genre_base_dir(settings: object) -> Path | None:
+    genre_pattern = getattr(settings.paths.patterns, "genre", "")
+    genre_base = str(genre_pattern).split("/")[0]
+    if not genre_base or "%" in genre_base:
+        return None
+    return (Path(settings.collection.directory) / genre_base).resolve(strict=False)
 
 
 def validate_operation_plans(plans: list[OperationPlan]) -> list[str]:
     """Validate complete operation plans before execution."""
+    from kimp3.config import cfg
+
     resolve_operation_conflicts(plans)
+    genre_base = _configured_genre_base_dir(cfg)
+    for plan in plans:
+        plan.errors.extend(validate_genre_link_paths(plan.path, genre_base))
     return [error for plan in plans for error in plan.errors]
 
 

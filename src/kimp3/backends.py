@@ -7,11 +7,23 @@ from typing import Any, Protocol
 
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import APIC, COMM, ID3, USLT
+from mutagen.id3 import (
+    APIC,
+    COMM,
+    ID3,
+    TALB,
+    TCON,
+    TDRC,
+    TIT2,
+    TPE1,
+    TPE2,
+    TPOS,
+    TRCK,
+    USLT,
+)
 
 from kimp3.config import APP_NAME
-from kimp3.models import AudioTags, Artwork, Lyrics
-
+from kimp3.models import Artwork, AudioTags, Lyrics
 
 LYRICS_LOOKUP_COMMENT_DESC = "KiMP3 lyrics lookup"
 LYRICS_LOOKUP_VORBIS_KEY = "kimp3:lyrics_lookup"
@@ -84,6 +96,14 @@ def _format_tag_value(value: Any) -> str:
     return rendered
 
 
+def _set_id3_text_frame(
+    id3: ID3, frame_id: str, frame_type: type, value: str | list[str] | None
+) -> None:
+    id3.delall(frame_id)
+    if value:
+        id3.add(frame_type(encoding=3, text=value))
+
+
 def _verify_managed_tags(path: Path, expected: AudioTags, actual: AudioTags) -> list[str]:
     errors = []
     for field in MANAGED_TAG_FIELDS:
@@ -106,27 +126,27 @@ class Mp3Id3Backend:
         return AudioTags.from_mutagen(easy_tags, id3)
 
     def write(self, path: Path, tags: AudioTags, policy: TagWritePolicy) -> None:
-        easy_tags = EasyID3(path)
-        track_number = _format_number(tags.track_number, tags.total_tracks, len(str(tags.total_tracks)) if tags.total_tracks else 2)
-        disc_number = _format_number(tags.disc_number, tags.total_discs, len(str(tags.total_discs)) if tags.total_discs else 1)
-        tag_mapping = {
-            "title": tags.title,
-            "artist": tags.artist,
-            "album": tags.album,
-            "albumartist": tags.album_artist,
-            "genre": tags.genre,
-            "date": str(tags.year) if tags.year else None,
-            "discnumber": disc_number,
-            "tracknumber": track_number,
-        }
-        for key, value in tag_mapping.items():
-            if value:
-                easy_tags[key] = [value]
-            elif key in easy_tags:
-                del easy_tags[key]
-        easy_tags.save()
-
         id3 = ID3(path)
+        track_number = _format_number(
+            tags.track_number,
+            tags.total_tracks,
+            len(str(tags.total_tracks)) if tags.total_tracks else 2,
+        )
+        disc_number = _format_number(
+            tags.disc_number,
+            tags.total_discs,
+            len(str(tags.total_discs)) if tags.total_discs else 1,
+        )
+
+        _set_id3_text_frame(id3, "TIT2", TIT2, tags.title)
+        _set_id3_text_frame(id3, "TPE1", TPE1, tags.artist)
+        _set_id3_text_frame(id3, "TALB", TALB, tags.album)
+        _set_id3_text_frame(id3, "TPE2", TPE2, tags.album_artist)
+        _set_id3_text_frame(id3, "TCON", TCON, tags.genres)
+        _set_id3_text_frame(id3, "TDRC", TDRC, str(tags.year) if tags.year else None)
+        _set_id3_text_frame(id3, "TRCK", TRCK, track_number)
+        _set_id3_text_frame(id3, "TPOS", TPOS, disc_number)
+
         comments_to_remove = ["", "Rating", "LastFM tags", LYRICS_LOOKUP_COMMENT_DESC]
         for key in list(id3.keys()):
             if key.startswith("COMM:"):

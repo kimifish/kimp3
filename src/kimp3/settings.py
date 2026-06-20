@@ -33,6 +33,7 @@ class ScanSettings(BaseModel):
     operation: FileOperation = FileOperation.AUTO
     force_external_move: bool = False
     force_replace: bool = False
+    verify_after_write: bool = True
     conflict_policy: Literal["keep-best", "fail", "skip", "suffix", "replace"] = (
         "keep-best"
     )

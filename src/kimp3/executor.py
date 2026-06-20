@@ -10,12 +10,10 @@ from kimp3.backends import TagWritePolicy, get_backend
 from kimp3.config import APP_NAME, cfg
 from kimp3.interface.utils import yes_or_no
 from kimp3.models import FileOperation, UsualFile
-from kimp3.planning import build_tag_change_plan
-from kimp3.reporting import (
-    ExecutionReporter,
-    PlanReporter,
-    execution_result_to_report_dict,
-)
+from kimp3.planning import (absolute_path_without_symlink_resolution,
+                            build_tag_change_plan)
+from kimp3.reporting import (ExecutionReporter, PlanReporter,
+                             execution_result_to_report_dict)
 from kimp3.song import AudioFile
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
@@ -27,8 +25,26 @@ def _same_file_path(source_path: Path, target_path: Path) -> bool:
     """Return True when two paths point to the same filesystem entry."""
     try:
         return os.path.samefile(source_path, target_path)
+    except (OSError, RuntimeError):
+        return absolute_path_without_symlink_resolution(source_path) == absolute_path_without_symlink_resolution(target_path)
+
+
+def _path_exists(path: Path) -> bool:
+    try:
+        return path.exists()
+    except (OSError, RuntimeError):
+        return False
+
+
+def _symlink_destination(path: Path) -> Path | None:
+    """Return absolute symlink destination without resolving destination symlinks."""
+    try:
+        raw_target = Path(os.readlink(path))
     except OSError:
-        return source_path.resolve(strict=False) == target_path.resolve(strict=False)
+        return None
+    if raw_target.is_absolute():
+        return absolute_path_without_symlink_resolution(raw_target)
+    return absolute_path_without_symlink_resolution(path.parent / raw_target)
 
 
 @dataclass
@@ -137,6 +153,16 @@ class OperationExecutor:
                 result.skips += 1
                 return result
 
+        for link_path in plan.path.genre_links:
+            try:
+                self._validate_genre_link_path(plan.path.target_path, link_path)
+            except Exception as error:
+                message = f"Invalid genre symlink path for {audio_file.filepath}: {error}"
+                log.error(f"`files`{message}")
+                result.failures += 1
+                result.errors.append(message)
+                return result
+
         try:
             if plan.operation == FileOperation.COPY:
                 self._execute_copy(audio_file)
@@ -193,10 +219,9 @@ class OperationExecutor:
                     f"Symlink verification failed: missing symlink {link_path}"
                 )
                 continue
-            actual_target = Path(os.readlink(link_path))
-            if not actual_target.is_absolute():
-                actual_target = (link_path.parent / actual_target).resolve()
-            if actual_target != target_path.resolve():
+            actual_target = _symlink_destination(link_path)
+            expected_target = absolute_path_without_symlink_resolution(target_path)
+            if actual_target != expected_target:
                 errors.append(
                     f"Symlink verification failed: {link_path} points to {actual_target}, expected {target_path}"
                 )
@@ -305,25 +330,38 @@ class OperationExecutor:
 
     def _sync_genre_symlinks(self, target_path: Path, genre_links: list[Path]) -> None:
         for link_path in genre_links:
+            self._validate_genre_link_path(target_path, link_path)
             link_path.parent.mkdir(parents=True, exist_ok=True)
             if link_path.exists() or link_path.is_symlink():
                 if link_path.is_symlink():
-                    current_target = Path(os.readlink(link_path))
-                    if not current_target.is_absolute():
-                        current_target = (link_path.parent / current_target).resolve()
-                    if current_target == target_path.resolve():
+                    current_target = _symlink_destination(link_path)
+                    expected_target = absolute_path_without_symlink_resolution(target_path)
+                    if current_target == expected_target:
                         continue
                     link_path.unlink()
                 else:
-                    log.warning(
-                        f"`files`Replacing non-symlink path in genre directory: {link_path}"
+                    raise FileExistsError(
+                        f"Refusing to replace non-symlink genre path: {link_path}"
                     )
-                    if link_path.is_dir():
-                        shutil.rmtree(link_path)
-                    else:
-                        link_path.unlink()
             relative_target = os.path.relpath(target_path, link_path.parent)
             link_path.symlink_to(relative_target)
+
+    def _validate_genre_link_path(self, target_path: Path, link_path: Path) -> None:
+        target = target_path.resolve(strict=False)
+        link = absolute_path_without_symlink_resolution(link_path)
+        if link == target:
+            raise RuntimeError(f"Refusing to create self-referential genre symlink: {link_path}")
+
+        genre_dir = self._genre_base_dir()
+        if genre_dir is None:
+            return
+        genre_root = genre_dir.resolve(strict=False)
+        if link != genre_root and genre_root not in link.parents:
+            raise RuntimeError(
+                f"Refusing to create genre symlink outside genre directory: {link_path}"
+            )
+        if link_path.exists() and not link_path.is_symlink():
+            raise FileExistsError(f"Refusing to replace non-symlink genre path: {link_path}")
 
     def _cleanup_stale_genre_symlinks(
         self, target_path: Path, planned_links: list[Path]
@@ -332,16 +370,11 @@ class OperationExecutor:
         if genre_dir is None or not genre_dir.exists():
             return
         planned = {link.absolute() for link in planned_links}
-        target = target_path.resolve()
+        target = absolute_path_without_symlink_resolution(target_path)
         for link_path in genre_dir.rglob("*"):
             if not link_path.is_symlink():
                 continue
-            raw_target = Path(os.readlink(link_path))
-            actual_target = (
-                raw_target
-                if raw_target.is_absolute()
-                else (link_path.parent / raw_target).resolve()
-            )
+            actual_target = _symlink_destination(link_path)
             if actual_target == target and link_path.absolute() not in planned:
                 log.info(f"`files`Removing stale genre symlink: {link_path}")
                 link_path.unlink()
@@ -361,13 +394,8 @@ class OperationExecutor:
         for link_path in genre_dir.rglob("*"):
             if not link_path.is_symlink():
                 continue
-            raw_target = Path(os.readlink(link_path))
-            actual_target = (
-                raw_target
-                if raw_target.is_absolute()
-                else (link_path.parent / raw_target).resolve()
-            )
-            if not actual_target.exists():
+            actual_target = _symlink_destination(link_path)
+            if actual_target is None or not _path_exists(actual_target):
                 log.info(f"`files`Removing broken genre symlink: {link_path}")
                 if not self.dry_run:
                     link_path.unlink()

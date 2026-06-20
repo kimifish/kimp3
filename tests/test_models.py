@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from kimp3.models import AudioTags, FileOperation, Lyrics, LyricsLookup, TrackNumber, UsualFile
+from kimp3.models import (AbstractSongDir, AudioTags, FileOperation, Lyrics,
+                          LyricsLookup, TrackNumber, UsualFile)
+
 
 class MockMutagenFile:
     """Mock класс для имитации mutagen.File"""
@@ -165,6 +167,50 @@ class TestUsualFile:
         assert usual_file.new_filepath == new_path
         assert usual_file.new_path == new_path.parent
         assert usual_file.new_name == new_path.name
+
+    def test_paths_are_stored_absolute(self, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        usual_file = UsualFile(filepath="album/song.mp3", song_dir=None)
+        usual_file.new_filepath = "library/song.mp3"
+
+        assert usual_file.filepath == tmp_path / "album" / "song.mp3"
+        assert usual_file.new_filepath == tmp_path / "library" / "song.mp3"
+
+
+class DummySongDir(AbstractSongDir):
+    def _scan_directory(self) -> None:
+        return None
+
+    def _analyze_directory(self) -> None:
+        return None
+
+    def _count_tracks(self) -> None:
+        return None
+
+    def process_files(self, operation: FileOperation) -> None:
+        return None
+
+    def fetch_tags(self) -> dict:
+        return {}
+
+    def gather_tag_values(self, tag_name: str) -> set:
+        return set()
+
+    def write_tags(self) -> tuple:
+        return (0, 0, 0)
+
+    @property
+    def stats(self) -> dict:
+        return {}
+
+
+class TestAbstractSongDir:
+    def test_path_is_stored_absolute(self, monkeypatch, tmp_path):
+        monkeypatch.chdir(tmp_path)
+
+        song_dir = DummySongDir("album")
+
+        assert song_dir.path == tmp_path / "album"
 
 class TestFileOperation:
     def test_file_operation_values(self):

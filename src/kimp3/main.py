@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Callable, Dict, List
 
 from rich.pretty import pretty_repr
@@ -13,11 +14,11 @@ from rich.pretty import pretty_repr
 from kimp3.config import APP_NAME, HOME_DIR, args, cfg, config_files, unknown
 from kimp3.config_loader import get_active_config_files, load_logging_config
 from kimp3.executor import OperationExecutor
+from kimp3.interface.utils import sep_with_header
 from kimp3.logging_setup import setup_logging
 from kimp3.reporting import ExecutionReporter, PlanReporter
 from kimp3.songdir import SongDir
-from kimp3.tags import init_lastfm, get_cache_stats, clear_cache
-from kimp3.interface.utils import sep_with_header
+from kimp3.tags import clear_cache, get_cache_stats, init_lastfm
 
 setup_logging(load_logging_config(cfg, APP_NAME))
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
@@ -57,6 +58,11 @@ def _log_startup_config() -> None:
                     "directory": cfg.collection.directory,
                     "create_genre_links": cfg.collection.create_genre_links,
                     "clean_symlinks": cfg.collection.clean_symlinks,
+                },
+                "paths": {
+                    "album": cfg.paths.patterns.album,
+                    "compilation": cfg.paths.patterns.compilation,
+                    "genre": cfg.paths.patterns.genre,
                 },
                 "tags": {
                     "fetch_tags": cfg.tags.fetch_tags,
@@ -101,9 +107,9 @@ class ScanDir:
         Args:
             scanpath: Directory path to start scanning from
         """
-        self.path = scanpath
+        self.path = Path(scanpath).expanduser().resolve(strict=False)
         self.directories_list: List[SongDir] = []
-        self.scan_directory(scanpath)
+        self.scan_directory(self.path)
 
     def scan_directory(self, scanpath):
         """Recursively scan directory for audio files and add them to directories_list.
@@ -132,7 +138,7 @@ class ScanDir:
             # If audio files found, create SongDir
             if audio_files:
                 self.directories_list.append(SongDir(scanpath, self))
-                log.info(f'`scan`Added "{scanpath.replace(HOME_DIR, "~")}" to directory list ({len(audio_files)} audio files)')
+                log.info(f'`scan`Added "{str(scanpath).replace(HOME_DIR, "~")}" to directory list ({len(audio_files)} audio files)')
                 log.debug("`scan`" + "─" * 90)
 
             # Recursively scan subdirectories

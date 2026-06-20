@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+import pytest
+
 from kimp3.executor import ExecutionResult, OperationExecutor
 from kimp3.models import AudioTags, FileOperation, UsualFile
 from kimp3.planning import OperationPlan, PathPlan, build_tag_change_plan
@@ -51,6 +53,14 @@ class DummySongDir:
     def __init__(self, audio_files):
         self.audio_files = audio_files
         self.common_files = []
+
+
+@pytest.fixture(autouse=True)
+def configure_genre_root(monkeypatch, tmp_path):
+    monkeypatch.setattr("kimp3.executor.cfg.collection.directory", str(tmp_path / "library"))
+    monkeypatch.setattr(
+        "kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
 
 
 def test_operation_executor_copy_creates_target_symlink_and_verifies(
@@ -259,7 +269,7 @@ def test_common_image_keeps_existing_when_source_is_not_larger(caplog, tmp_path)
     assert "Keeping existing common image" in caplog.text
 
 
-def test_operation_executor_replaces_non_symlink_genre_path(monkeypatch, tmp_path):
+def test_operation_executor_refuses_non_symlink_genre_path(monkeypatch, tmp_path):
     source = tmp_path / "incoming" / "song.mp3"
     target = tmp_path / "library" / "Artist" / "song.mp3"
     link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
@@ -274,9 +284,28 @@ def test_operation_executor_replaces_non_symlink_genre_path(monkeypatch, tmp_pat
         audio_file
     )
 
-    assert result.as_tuple() == (1, 0, 0)
-    assert link.is_symlink()
-    assert (link.parent / Path(link.readlink())).resolve() == target.resolve()
+    assert result.as_tuple() == (0, 1, 0)
+    assert link.read_text(encoding="utf-8") == "wrong"
+
+
+def test_operation_executor_refuses_genre_link_outside_genre_root(
+    monkeypatch, tmp_path
+):
+    source = tmp_path / "incoming" / "song.mp3"
+    target = tmp_path / "library" / "Artist" / "song.mp3"
+    bad_link = target
+    source.parent.mkdir()
+    source.write_bytes(b"audio")
+    audio_file = DummyAudioFile(source, target, bad_link, requires_tag_write=False)
+    monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
+
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
+
+    assert result.as_tuple() == (0, 1, 0)
+    assert source.exists()
+    assert not target.exists()
 
 
 def test_operation_executor_removes_stale_genre_symlink(monkeypatch, tmp_path):
@@ -307,6 +336,33 @@ def test_operation_executor_removes_stale_genre_symlink(monkeypatch, tmp_path):
     assert not stale_link.exists()
 
 
+def test_operation_executor_accepts_existing_correct_genre_symlink(
+    monkeypatch, tmp_path
+):
+    target = tmp_path / "library" / "Artist" / "song.mp3"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    target.parent.mkdir(parents=True)
+    link.parent.mkdir(parents=True)
+    target.write_bytes(b"audio")
+    link.symlink_to(os.path.relpath(target, link.parent))
+    audio_file = DummyAudioFile(
+        target,
+        target,
+        link,
+        requires_tag_write=False,
+        operation=FileOperation.MOVE,
+    )
+    monkeypatch.setattr("kimp3.executor.get_backend", lambda path: FakeBackend())
+
+    result = OperationExecutor(dry_run=False, interactive=False).execute_audio_file(
+        audio_file
+    )
+
+    assert result.as_tuple() == (1, 0, 0)
+    assert link.is_symlink()
+    assert (link.parent / Path(link.readlink())).resolve() == target
+
+
 def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(
     monkeypatch, tmp_path
 ):
@@ -328,6 +384,28 @@ def test_cleanup_collection_removes_broken_genre_symlink_and_empty_dirs(
 
     assert not broken_link.exists()
     assert not empty_dir.exists()
+
+
+def test_cleanup_collection_removes_genre_symlink_to_loop(monkeypatch, tmp_path):
+    library = tmp_path / "library"
+    loop_target = library / "Artist" / "Album" / "loop.mp3"
+    genre_link = library / "_Genres" / "Rock" / "loop.mp3"
+    loop_target.parent.mkdir(parents=True)
+    genre_link.parent.mkdir(parents=True)
+    loop_target.symlink_to(loop_target)
+    genre_link.symlink_to(os.path.relpath(loop_target, genre_link.parent))
+    monkeypatch.setattr("kimp3.executor.cfg.collection.directory", str(library))
+    monkeypatch.setattr(
+        "kimp3.executor.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
+    monkeypatch.setattr("kimp3.executor.cfg.collection.clean_symlinks", True)
+    monkeypatch.setattr("kimp3.executor.cfg.scan.delete_empty_dirs", False)
+    monkeypatch.setattr("kimp3.executor.cfg.scan.junk_files", [])
+
+    OperationExecutor(dry_run=False, interactive=False).cleanup_collection([library])
+
+    assert loop_target.is_symlink()
+    assert not genre_link.exists()
 
 
 def test_cleanup_collection_removes_junk_before_empty_dir_cleanup(

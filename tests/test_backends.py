@@ -1,7 +1,8 @@
 from datetime import date
 from pathlib import Path
 
-from kimp3.backends import FlacVorbisBackend, Mp3Id3Backend, TagWritePolicy, get_backend
+from kimp3.backends import (FlacVorbisBackend, Mp3Id3Backend, TagWritePolicy,
+                            get_backend)
 from kimp3.models import AudioTags, LyricsLookup
 
 
@@ -66,6 +67,11 @@ class FakeId3(dict):
     def add(self, frame):
         self[f"{frame.FrameID}:{getattr(frame, 'desc', '')}:eng"] = frame
 
+    def delall(self, frame_id):
+        for key in list(self.keys()):
+            if key == frame_id or key.startswith(f"{frame_id}:"):
+                del self[key]
+
     def save(self, v2_version=None):
         self.saved_version = v2_version
 
@@ -120,9 +126,9 @@ def test_mp3_backend_writes_total_tracks_without_track_number(monkeypatch):
 
     Mp3Id3Backend().write(Path("song.mp3"), AudioTags(title="Song", artist="Artist", total_tracks=12), TagWritePolicy())
 
-    easy_tags = FakeEasyId3.instances[-1]
-    assert easy_tags["tracknumber"] == ["/12"]
-    assert easy_tags.saved is True
+    id3 = FakeId3.instances[-1]
+    assert id3["TRCK::eng"].text == ["/12"]
+    assert id3.saved_version == 3
 
 
 def test_flac_backend_reads_vorbis_comments(monkeypatch):

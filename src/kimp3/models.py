@@ -15,7 +15,8 @@ from typing import Dict, List, Literal, Optional, Set
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (BaseModel, ConfigDict, Field, ValidationError,
+                      field_validator, model_validator)
 
 #from kimp3.config import APP_NAME
 APP_NAME = 'kimp3'
@@ -419,7 +420,7 @@ class AudioTags(BaseModel):
 class UsualFile:
     """Base class for handling regular files."""
     def __init__(self, filepath: str | Path, song_dir: 'AbstractSongDir'):
-        self._filepath = Path(filepath)
+        self._filepath = Path(filepath).expanduser().resolve(strict=False)
         self.path = self._filepath.parent
         self.name = self._filepath.name
         self._new_filepath: Path = Path()
@@ -434,7 +435,7 @@ class UsualFile:
 
     @filepath.setter
     def filepath(self, value: str | Path) -> None:
-        self._filepath = Path(value)
+        self._filepath = Path(value).expanduser().resolve(strict=False)
         self.path = self._filepath.parent
         self.name = self._filepath.name
 
@@ -444,7 +445,7 @@ class UsualFile:
 
     @new_filepath.setter
     def new_filepath(self, value: str | Path) -> None:
-        self._new_filepath = Path(value)
+        self._new_filepath = Path(value).expanduser().resolve(strict=False)
         self.new_path = self._new_filepath.parent
         self.new_name = self._new_filepath.name
 
@@ -469,7 +470,7 @@ class AbstractSongDir(ABC):
     """
     
     def __init__(self, scan_path: str | Path):
-        self.path = Path(scan_path)
+        self.path = Path(scan_path).expanduser().resolve(strict=False)
         self.audio_files: List['AudioFile'] = []
         self.common_files: List['UsualFile'] = []
         

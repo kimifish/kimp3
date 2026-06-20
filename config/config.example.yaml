@@ -20,6 +20,7 @@ scan:
     - .flac
   operation: auto
   force_external_move: false
+  verify_after_write: true
   conflict_policy: keep-best
   force_replace: false
   create_symlinks_in_none: false

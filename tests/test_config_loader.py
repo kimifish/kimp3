@@ -98,6 +98,7 @@ def test_settings_default_operation_is_auto():
 
     assert settings.scan.operation.value == "auto"
     assert settings.scan.conflict_policy == "keep-best"
+    assert settings.scan.verify_after_write is True
 
 
 def test_old_move_or_copy_name_is_rejected():

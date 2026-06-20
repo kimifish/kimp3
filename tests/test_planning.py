@@ -1,22 +1,16 @@
+import os
 from pathlib import Path
 
 import pytest
 
 from kimp3.models import AudioTags, FileOperation
-from kimp3.planning import (
-    PathPlan,
-    OperationPlan,
-    PlanValidationError,
-    build_operation_plan,
-    build_tag_change_plan,
-    build_path_plan,
-    resolve_operation_conflicts,
-    resolve_operation,
-    render_operation_preview,
-    score_candidate,
-    validate_audio_plans,
-    validate_pattern_variables,
-)
+from kimp3.planning import (OperationPlan, PathPlan, PlanValidationError,
+                            build_operation_plan, build_path_plan,
+                            build_tag_change_plan, render_operation_preview,
+                            resolve_operation, resolve_operation_conflicts,
+                            score_candidate, validate_audio_plans,
+                            validate_operation_plans,
+                            validate_pattern_variables)
 from kimp3.settings import Settings
 
 
@@ -234,6 +228,43 @@ def test_operation_plan_combines_path_and_tag_changes(tmp_path):
     assert plan.is_noop is False
 
 
+def test_path_plan_normalizes_paths_to_absolute(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+    plan = PathPlan(
+        source_path=Path("incoming/song.mp3"),
+        target_path=Path("library/Artist/song.mp3"),
+        genre_links=[Path("library/_Genres/Rock/song.mp3")],
+        operation=FileOperation.COPY,
+    )
+
+    assert plan.source_path == tmp_path / "incoming" / "song.mp3"
+    assert plan.target_path == tmp_path / "library" / "Artist" / "song.mp3"
+    assert plan.genre_links == [
+        tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    ]
+
+
+def test_path_plan_keeps_existing_symlink_path(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    target = tmp_path / "library" / "Artist" / "song.mp3"
+    link = tmp_path / "library" / "_Genres" / "Rock" / "song.mp3"
+    target.parent.mkdir(parents=True)
+    link.parent.mkdir(parents=True)
+    target.write_bytes(b"audio")
+    link.symlink_to(os.path.relpath(target, link.parent))
+
+    plan = PathPlan(
+        source_path=Path("incoming/song.mp3"),
+        target_path=target,
+        genre_links=[link],
+        operation=FileOperation.COPY,
+    )
+
+    assert plan.genre_links == [link]
+    assert plan.genre_links[0].resolve() == target
+
+
 def test_operation_plan_noop_for_matching_tags_and_path(tmp_path):
     library = tmp_path / "library"
     settings = Settings.model_validate(
@@ -409,6 +440,102 @@ def test_conflict_policy_suffix_renames_existing_target(monkeypatch, tmp_path):
     resolve_operation_conflicts([plan])
 
     assert plan.path.target_path.name == "song (1).mp3"
+
+
+def test_validate_audio_plans_rejects_self_referential_genre_link(monkeypatch, tmp_path):
+    library = tmp_path / "library"
+    target = library / "Artist" / "song.mp3"
+    source = tmp_path / "incoming" / "song.mp3"
+    monkeypatch.setattr("kimp3.config.cfg.collection.directory", str(library))
+    monkeypatch.setattr(
+        "kimp3.config.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
+    plan = PathPlan(
+        source_path=source,
+        target_path=target,
+        genre_links=[target],
+        operation=FileOperation.COPY,
+    )
+
+    errors = validate_audio_plans([plan])
+
+    assert any("Genre symlink points to itself" in error for error in errors)
+    assert any("Genre symlink outside genre directory" in error for error in errors)
+
+
+def test_validate_audio_plans_rejects_genre_link_outside_genre_root(monkeypatch, tmp_path):
+    library = tmp_path / "library"
+    source = tmp_path / "incoming" / "song.mp3"
+    target = library / "Artist" / "song.mp3"
+    bad_link = library / "Artist" / "by-genre.mp3"
+    monkeypatch.setattr("kimp3.config.cfg.collection.directory", str(library))
+    monkeypatch.setattr(
+        "kimp3.config.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
+    plan = PathPlan(
+        source_path=source,
+        target_path=target,
+        genre_links=[bad_link],
+        operation=FileOperation.COPY,
+    )
+
+    errors = validate_audio_plans([plan])
+
+    assert errors == [f"Genre symlink outside genre directory: {bad_link}"]
+
+
+def test_validate_operation_plans_rejects_self_referential_genre_link(
+    monkeypatch, tmp_path
+):
+    library = tmp_path / "library"
+    target = library / "Artist" / "song.mp3"
+    source = tmp_path / "incoming" / "song.mp3"
+    monkeypatch.setattr("kimp3.config.cfg.collection.directory", str(library))
+    monkeypatch.setattr(
+        "kimp3.config.cfg.paths.patterns.genre", "_Genres/%genre/%song_title.mp3"
+    )
+    plan = OperationPlan(
+        path=PathPlan(
+            source_path=source,
+            target_path=target,
+            genre_links=[target],
+            operation=FileOperation.COPY,
+        ),
+        tags=build_tag_change_plan(AudioTags(), AudioTags()),
+    )
+
+    errors = validate_operation_plans([plan])
+
+    assert any("Genre symlink points to itself" in error for error in errors)
+
+
+def test_build_path_plan_rejects_album_pattern_as_genre_pattern(tmp_path):
+    settings = Settings.model_validate(
+        {
+            "collection": {
+                "directory": str(tmp_path / "library"),
+                "create_genre_links": True,
+            },
+            "paths": {
+                "patterns": {
+                    "album": "%album_artist/%year - %album_title/%track_num. %song_title.%ext",
+                    "genre": "%album_artist/%year - %album_title/%track_num. %song_title.%ext",
+                }
+            },
+        }
+    )
+    tags = AudioTags(
+        title="Song",
+        artist="Artist",
+        album="Album",
+        album_artist="Artist",
+        track_number=1,
+        year=2024,
+        genres=["Rock"],
+    )
+
+    with pytest.raises(PlanValidationError, match="Genre symlink points to itself"):
+        build_path_plan(tmp_path / "incoming" / "song.mp3", tags, DummySongDir(), settings)
 
 
 def test_render_operation_preview_contains_tags_paths_and_links(tmp_path):

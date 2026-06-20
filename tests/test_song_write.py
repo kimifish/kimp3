@@ -41,6 +41,12 @@ class FakeID3(dict):
 
     def add(self, frame):
         self.added.append(frame)
+        self[f"{frame.FrameID}:{getattr(frame, 'desc', '')}:eng"] = frame
+
+    def delall(self, frame_id):
+        for key in list(self.keys()):
+            if key == frame_id or key.startswith(f"{frame_id}:"):
+                del self[key]
 
     def save(self, *args, **kwargs):
         self.saved = True
@@ -61,9 +67,28 @@ def test_managed_write_does_not_delete_unknown_frames(monkeypatch):
 
     assert audio_file.write_tags() is True
     assert FakeEasyID3.deleted is False
-    assert FakeEasyID3.saved is True
+    assert FakeEasyID3.saved is False
+    assert FakeID3.instances[-1].saved is True
     assert "TXXX:Preserved" in FakeID3.instances[-1]
     assert "COMM:Other:eng" in FakeID3.instances[-1]
+
+
+def test_write_tags_can_skip_verify(monkeypatch):
+    FakeID3.instances = []
+
+    monkeypatch.setattr("kimp3.backends.ID3", FakeID3)
+    monkeypatch.setattr("kimp3.song.cfg.scan.verify_after_write", False)
+    monkeypatch.setattr(
+        AudioFile,
+        "verify_tags",
+        lambda self: (_ for _ in ()).throw(AssertionError("verify_tags should not run")),
+    )
+
+    audio_file = object.__new__(AudioFile)
+    audio_file._filepath = Path("/tmp/song.mp3")
+    audio_file.tags = AudioTags(title="New", artist="Artist")
+
+    assert audio_file.write_tags() is True
 
 
 def test_skip_tag_write_when_managed_tags_match(monkeypatch, tmp_path):

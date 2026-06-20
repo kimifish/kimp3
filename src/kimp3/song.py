@@ -8,11 +8,11 @@ from typing import List
 
 import kimp3.tags
 from kimp3.backends import TagWritePolicy, get_backend
-from kimp3.models import AudioTags, FileOperation, UsualFile, AbstractSongDir
-from kimp3.config import cfg, APP_NAME
+from kimp3.config import APP_NAME, cfg
 from kimp3.encoding import repair_audio_tags_text_encoding
-from kimp3.planning import OperationPlan, build_operation_plan
 from kimp3.interface.utils import yes_or_no
+from kimp3.models import AbstractSongDir, AudioTags, FileOperation, UsualFile
+from kimp3.planning import OperationPlan, build_operation_plan
 from kimp3.title_case import normalize_audio_tag_titles
 
 log = logging.getLogger(f"{APP_NAME}.{__name__}")
@@ -114,6 +114,8 @@ class AudioFile(UsualFile):
         try:
             get_backend(self.filepath).write(self.filepath, self.tags, TagWritePolicy())
             log.debug(f"`files,tags`Tags successfully written to {self.filepath}")
+            if not cfg.scan.verify_after_write:
+                return True
             return self.verify_tags()
 
         except Exception as e:
@@ -158,8 +160,8 @@ class AudioFile(UsualFile):
                       show_cover: bool = False) -> None:
         """Prints tag and path changes."""
         from rich import print
-        from rich.panel import Panel
         from rich.console import Console
+        from rich.panel import Panel
         from rich.text import Text
 
         console = Console(width=100)
